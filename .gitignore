@@ -1,0 +1,5 @@
+# Builds and releases
+bin
+
+# Datasources and dashboards for testing
+.dash

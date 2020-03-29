@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  release:
+    types: [created]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    name: Release
+    steps:
+      - name: Set up Go 1.13
+        uses: actions/setup-go@v1
+        with:
+          go-version: 1.13
+        id: go
+
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+
+      - name: Get dependencies
+        run: go mod download
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build
+        run: make release
+
+      - name: Upload
+        run: |
+          ./upload.sh ./bin/dash-darwin-amd64 application/x-binary
+          ./upload.sh ./bin/dash-linux-amd64 application/x-binary
+          ./upload.sh ./bin/dash-windows-amd64.exe application/x-binary
+        env:
+          GITHUB_TOKEN: ${{ secrets.TOKEN }}
