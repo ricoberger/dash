@@ -1,11 +1,10 @@
 package dashboard
 
 import (
-	"bytes"
 	"errors"
-	"github.com/ricoberger/dash/pkg/datasource"
 	"io/ioutil"
-	"text/template"
+
+	"github.com/ricoberger/dash/pkg/datasource"
 
 	"gopkg.in/yaml.v2"
 )
@@ -17,7 +16,7 @@ var (
 )
 
 type Row struct {
-	Height float64 `yaml:"height"`
+	Height int     `yaml:"height"`
 	Graphs []Graph `yaml:"graphs"`
 }
 
@@ -70,19 +69,4 @@ func New(dir string, datasources map[string]datasource.Client) ([]Dashboard, err
 	}
 
 	return dashboards, nil
-}
-
-func queryInterpolation(query string, variables map[string]string) (string, error) {
-	tpl, err := template.New("query").Parse(query)
-	if err != nil {
-		return "", err
-	}
-
-	var buf bytes.Buffer
-	err = tpl.Execute(&buf, variables)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-
 }

@@ -4,7 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
+
+	fLog "github.com/ricoberger/dash/pkg/log"
 
 	"github.com/prometheus/client_golang/api"
 	"github.com/prometheus/client_golang/api/prometheus/v1"
@@ -12,7 +15,8 @@ import (
 )
 
 type Prometheus struct {
-	v1api v1.API
+	v1api   v1.API
+	options Options
 }
 
 type basicAuthTransport struct {
@@ -66,7 +70,8 @@ func NewPrometheusClient(datasource Datasource) (*Prometheus, error) {
 	}
 
 	return &Prometheus{
-		v1api: v1.NewAPI(client),
+		v1api:   v1.NewAPI(client),
+		options: datasource.Options,
 	}, nil
 }
 
@@ -92,17 +97,26 @@ func (p *Prometheus) GetVariableValues(query, label string, start, end time.Time
 	return values, nil
 }
 
-func (p *Prometheus) GetData(queries []string, start, end time.Time) ([]Data, error) {
+func (p *Prometheus) GetData(queries, labels []string, start, end time.Time) (*Data, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	var queriesData []Data
+	var series []Series
+	var timestamps map[int]string
+	timestamps = make(map[int]string)
 
-	for _, query := range queries {
+	var step = 10 * time.Second
+	if p.options.MaxPoints != 0 {
+		step = time.Duration((end.Unix()-start.Unix())/p.options.MaxPoints) * time.Second
+	} else if p.options.Step != 0 {
+		step = time.Duration(p.options.Step) * time.Second
+	}
+
+	for i, query := range queries {
 		timeRange := v1.Range{
 			Start: start,
 			End:   end,
-			Step:  10 * time.Second,
+			Step:  step,
 		}
 
 		result, _, err := p.v1api.QueryRange(ctx, query, timeRange)
@@ -115,28 +129,46 @@ func (p *Prometheus) GetData(queries []string, start, end time.Time) ([]Data, er
 			return nil, fmt.Errorf("unsupported result format: %s", result.Type().String())
 		}
 
-		for _, d := range data {
-			var timestamps []int64
+		for j, d := range data {
+			fLog.Debugf("query %s returned %d points and the following labels %v", query, len(d.Values), d.Metric)
+
 			var points []float64
-			var labels map[string]string
-			labels = make(map[string]string)
+			var returnedLabels map[string]string
+			returnedLabels = make(map[string]string)
 
 			for key, value := range d.Metric {
-				labels[string(key)] = string(value)
+				returnedLabels[string(key)] = string(value)
 			}
 
-			for _, value := range d.Values {
-				timestamps = append(timestamps, value.Timestamp.Unix())
+			for key, value := range d.Values {
+				if i == 0 && j == 0 {
+					timestamps[key] = value.Timestamp.Time().Format("01/02 15:04")
+				}
 				points = append(points, float64(value.Value))
 			}
 
-			queriesData = append(queriesData, Data{
-				Labels:     labels,
-				Timestamps: timestamps,
-				Points:     points,
+			series = append(series, Series{
+				Label:  getLabel(labels[i], returnedLabels),
+				Points: points,
 			})
 		}
 	}
 
-	return queriesData, nil
+	return &Data{
+		Timestamps: timestamps,
+		Series:     series,
+	}, nil
+}
+
+func getLabel(label string, labels map[string]string) string {
+	value, err := QueryInterpolation(label, labels)
+	if err != nil || label == "" {
+		var values []string
+		for key, value := range labels {
+			values = append(values, key+"="+value)
+		}
+		return strings.Join(values, ", ")
+	}
+
+	return value
 }

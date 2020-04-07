@@ -2,34 +2,44 @@ package widget
 
 import (
 	"fmt"
-	"image"
 	"strings"
 
 	"github.com/ricoberger/dash/pkg/render/utils"
 
-	ui "github.com/gizak/termui/v3"
+	"github.com/mum4k/termdash/cell"
+	"github.com/mum4k/termdash/widgets/text"
 )
 
 type Statusbar struct {
-	*ui.Block
+	*text.Text
 
 	storage *utils.Storage
 }
 
-func NewStatusbar(termWidth, termHeight int, storage *utils.Storage) *Statusbar {
-	bar := ui.NewBlock()
-	bar.Border = false
-	bar.PaddingTop = 5
-
-	bar.SetRect(0, 0, termWidth, 1)
-
-	return &Statusbar{
-		bar,
-		storage,
+func NewStatusbar(termWidth int, storage *utils.Storage) (*Statusbar, error) {
+	txt, err := text.New()
+	if err != nil {
+		return nil, err
 	}
+
+	statusbar := &Statusbar{txt, storage}
+	statusbar.Update(termWidth)
+	return statusbar, nil
 }
 
-func (s *Statusbar) Draw(buf *ui.Buffer) {
+func (s *Statusbar) Update(termWidth int) {
+	s.Reset()
+
+	dashboard := fmt.Sprintf(" [D]ashboard: %s", s.storage.Dashboard().Name)
+	variables := fmt.Sprintf(" [V]ariables: %s", strings.Join(s.storage.GetVariableValues(), ", "))
+	interval := fmt.Sprintf(" [I]nterval: %s", s.storage.Interval.Interval)
+	refresh := fmt.Sprintf(" [R]efresh: %s ", s.storage.Refresh)
+	spaces := strings.Repeat(" ", termWidth-len(dashboard)-len(variables)-len(interval)-len(refresh))
+
+	s.Write(dashboard+variables+spaces+interval+refresh, text.WriteCellOpts(cell.BgColor(cell.ColorBlue), cell.FgColor(cell.ColorBlack)))
+}
+
+/*func (s *Statusbar) Draw(buf *ui.Buffer) {
 	// Render the background of the status bar. To render the whole background of the status bar in blue we have to
 	// provide a string with the length of the status bar.
 	buf.SetString(
@@ -68,4 +78,4 @@ func (s *Statusbar) Draw(buf *ui.Buffer) {
 		ui.NewStyle(ui.ColorBlack, ui.ColorBlue),
 		image.Pt(s.Inner.Max.X-len(refreshInterval)-2-len(interval), s.Inner.Min.Y),
 	)
-}
+}*/

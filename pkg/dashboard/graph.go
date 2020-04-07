@@ -9,40 +9,45 @@ import (
 type Graph struct {
 	client datasource.Client `yaml:"-"`
 
-	Width      float64  `yaml:"width"`
-	Datasource string   `yaml:"datasource"`
-	Type       string   `yaml:"type"`
-	Title      string   `yaml:"title"`
-	Queries    []string `yaml:"queries"`
-	Options    Options  `yaml:"options"`
+	Width      int     `yaml:"width"`
+	Datasource string  `yaml:"datasource"`
+	Type       string  `yaml:"type"`
+	Title      string  `yaml:"title"`
+	Queries    []Query `yaml:"queries"`
+	Options    Options `yaml:"options"`
+}
+
+type Query struct {
+	Query string `yaml:"query"`
+	Label string `yaml:"label"`
 }
 
 type Options struct {
 	Unit       string    `yaml:"unit"`
 	Stats      []string  `yaml:"stats"`
-	Prefix     string    `yaml:"prefix"`
-	Postfix    string    `yaml:"postfix"`
 	Decimals   int       `yaml:"decimals"`
 	Thresholds []float64 `yaml:"thresholds"`
 	Colors     []string  `yaml:"colors"`
-	Label      string    `yaml:"label"`
+	Legend     string    `yaml:"legend"`
 }
 
 func (g *Graph) SetClient(client datasource.Client) {
 	g.client = client
 }
 
-func (g *Graph) GetData(variables map[string]string, start, end time.Time) ([]datasource.Data, error) {
+func (g *Graph) GetData(variables map[string]string, start, end time.Time) (*datasource.Data, error) {
 	var queries []string
+	var labels []string
 
 	for _, query := range g.Queries {
-		q, err := queryInterpolation(query, variables)
+		q, err := datasource.QueryInterpolation(query.Query, variables)
 		if err != nil {
 			return nil, err
 		}
 
 		queries = append(queries, q)
+		labels = append(labels, query.Label)
 	}
 
-	return g.client.GetData(queries, start, end)
+	return g.client.GetData(queries, labels, start, end)
 }
