@@ -125,7 +125,7 @@ func Run(dashboards []dashboard.Dashboard, initialInterval, initialRefresh strin
 		case 'r':
 			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeRefresh, VariableIndex: 0})
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
-		default:
+		case keyboard.KeyEsc:
 			modalActive = false
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(gridOpts...), container.SplitFixed(1)))
 		}
