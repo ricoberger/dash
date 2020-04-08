@@ -87,10 +87,8 @@ func (p *Prometheus) GetVariableValues(query, label string, start, end time.Time
 	var values []string
 
 	for _, labelSet := range labelSets {
-		for key, value := range labelSet {
-			if string(key) == label {
-				values = append(values, string(value))
-			}
+		if value, ok := labelSet[model.LabelName(label)]; ok {
+			values = appendIfMissing(values, string(value))
 		}
 	}
 
@@ -171,4 +169,14 @@ func getLabel(label string, labels map[string]string) string {
 	}
 
 	return value
+}
+
+func appendIfMissing(items []string, item string) []string {
+	for _, ele := range items {
+		if ele == item {
+			return items
+		}
+	}
+
+	return append(items, item)
 }
