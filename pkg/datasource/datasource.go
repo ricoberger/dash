@@ -1,8 +1,10 @@
 package datasource
 
 import (
+	"bytes"
 	"errors"
 	"io/ioutil"
+	"text/template"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -19,22 +21,32 @@ type Auth struct {
 	Token    string `yaml:"token"`
 }
 
+type Options struct {
+	MaxPoints int64 `yaml:"maxPoints"`
+	Step      int64 `yaml:"step"`
+}
+
 type Datasource struct {
-	Type string `yaml:"type"`
-	Name string `yaml:"name"`
-	URL  string `yaml:"url"`
-	Auth Auth   `yaml:"auth"`
+	Type    string  `yaml:"type"`
+	Name    string  `yaml:"name"`
+	URL     string  `yaml:"url"`
+	Auth    Auth    `yaml:"auth"`
+	Options Options `yaml:"options"`
 }
 
 type Data struct {
-	Labels     map[string]string
-	Timestamps []int64
-	Points     []float64
+	Timestamps map[int]string
+	Series     []Series
+}
+
+type Series struct {
+	Label  string
+	Points []float64
 }
 
 type Client interface {
 	GetVariableValues(query, label string, start, end time.Time) ([]string, error)
-	GetData(queries []string, start, end time.Time) ([]Data, error)
+	GetData(queries, labels []string, start, end time.Time) (*Data, error)
 }
 
 func New(dir string) (map[string]Client, error) {
@@ -77,4 +89,19 @@ func newClient(datasource Datasource) (Client, error) {
 	default:
 		return nil, ErrInvalidType
 	}
+}
+
+func QueryInterpolation(query string, variables map[string]string) (string, error) {
+	tpl, err := template.New("query").Parse(query)
+	if err != nil {
+		return "", err
+	}
+
+	var buf bytes.Buffer
+	err = tpl.Execute(&buf, variables)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+
 }

@@ -1,10 +1,13 @@
 package widget
 
 import (
+	"fmt"
+	"strconv"
+	"strings"
+
 	"github.com/ricoberger/dash/pkg/render/utils"
 
-	ui "github.com/gizak/termui/v3"
-	w "github.com/gizak/termui/v3/widgets"
+	"github.com/mum4k/termdash/widgets/text"
 )
 
 type ModalType string
@@ -20,12 +23,12 @@ var intervals = []string{"5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h", "2d
 var refreshs = []string{"5s", "10s", "30s", "1m", "5m", "15m", "30m", "1h", "2h", "1d"}
 
 type Modal struct {
-	*w.List
+	*text.Text
 
-	termWidth  int
-	termHeight int
-	storage    *utils.Storage
-	options    *ModalOptions
+	storage *utils.Storage
+	options *ModalOptions
+	rows    []string
+	index   string
 }
 
 type ModalOptions struct {
@@ -33,43 +36,30 @@ type ModalOptions struct {
 	VariableIndex int
 }
 
-func NewModal(termWidth, termHeight int, storage *utils.Storage) *Modal {
-	modal := w.NewList()
-	modal.TextStyle = ui.NewStyle(ui.ColorYellow)
-	modal.WrapText = false
+func NewModal(storage *utils.Storage) (*Modal, error) {
+	modal, err := text.New()
+	if err != nil {
+		return nil, err
+	}
 
 	return &Modal{
 		modal,
 
-		termWidth,
-		termHeight,
 		storage,
 		nil,
-	}
+		nil,
+		"",
+	}, nil
 }
 
-func (m *Modal) SetDimensions(termWidth, termHeight int) {
-	m.termWidth = termWidth
-	m.termHeight = termHeight
-}
-
-func (m *Modal) Hide() {
-	m.SetRect(0, 0, 0, 0)
-}
-
-func (m *Modal) Show(options *ModalOptions) bool {
-	var index int
-	m.options = options
-	m.Title = string(m.options.Type)
-	m.Rows = []string{}
+func (m *Modal) show() bool {
+	m.Reset()
 
 	if m.options.Type == ModalTypeDashboard {
-		index = m.storage.ActiveDashboard
-		for _, dashboard := range m.storage.Dashboards {
-			m.Rows = append(m.Rows, dashboard.Name)
+		for index, dashboard := range m.storage.Dashboards {
+			m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, dashboard.Name))
 		}
 	} else if m.options.Type == ModalTypeVariable {
-		m.options.VariableIndex = m.options.VariableIndex - 1
 		if m.options.VariableIndex >= len(m.storage.Dashboard().Variables) {
 			return false
 		}
@@ -80,48 +70,74 @@ func (m *Modal) Show(options *ModalOptions) bool {
 			return false
 		}
 
-		for key, value := range values {
-			m.Rows = append(m.Rows, value)
-
-			if value == m.storage.VariableValues[variable.Name] {
-				index = key
-			}
+		for index, value := range values {
+			m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, value))
 		}
 	} else if m.options.Type == ModalTypeInterval {
-		m.Rows = intervals
-
-		for key, value := range m.Rows {
-			if value == m.storage.Interval.Interval {
-				index = key
-			}
+		for index, interval := range intervals {
+			m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, interval))
 		}
 	} else if m.options.Type == ModalTypeRefresh {
-		m.Rows = refreshs
-
-		for key, value := range m.Rows {
-			if value == m.storage.Refresh {
-				index = key
-			}
+		for index, refresh := range refreshs {
+			m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, refresh))
 		}
 	} else {
 		return false
 	}
 
-	m.SelectedRow = index
-	m.SetRect(m.termWidth/2-25, m.termHeight/2-10, m.termWidth/2+25, m.termHeight/2+10)
+	if m.index == "" {
+		err := m.Write(fmt.Sprintf("Selected index: \n\n%s", strings.Join(m.rows, "\n")))
+		if err != nil {
+			return false
+		}
+	} else {
+		err := m.Write(fmt.Sprintf("Selected index: %s \n\n%s", m.index, strings.Join(m.rows, "\n")))
+		if err != nil {
+			return false
+		}
+	}
+
 	return true
 }
 
-func (m *Modal) Select() ModalType {
-	if m.options.Type == ModalTypeDashboard {
-		m.storage.ChangeDashboard(m.SelectedRow)
-	} else if m.options.Type == ModalTypeVariable {
-		m.storage.ChangeVariable(m.storage.Dashboard().Variables[m.options.VariableIndex].Name, m.Rows[m.SelectedRow])
-	} else if m.options.Type == ModalTypeInterval {
-		m.storage.ChangeInterval(intervals[m.SelectedRow])
-	} else if m.options.Type == ModalTypeRefresh {
-		m.storage.ChangeRefresh(refreshs[m.SelectedRow])
+func (m *Modal) Show(options *ModalOptions) bool {
+	m.options = options
+	m.rows = nil
+	m.index = ""
+	return m.show()
+}
+
+func (m *Modal) SelectIndex(index string) bool {
+	m.rows = nil
+	m.index = m.index + index
+	return m.show()
+}
+
+func (m *Modal) Select() (ModalType, error) {
+	index, err := strconv.Atoi(m.index)
+	if err != nil {
+		return m.options.Type, err
 	}
 
-	return m.options.Type
+	if m.options.Type == ModalTypeDashboard {
+		err := m.storage.ChangeDashboard(index)
+		if err != nil {
+			return m.options.Type, err
+		}
+	} else if m.options.Type == ModalTypeVariable {
+		split := strings.Index(m.rows[index], ":")
+		err := m.storage.ChangeVariable(m.storage.Dashboard().Variables[m.options.VariableIndex].Name, m.rows[index][split+2:])
+		if err != nil {
+			return m.options.Type, err
+		}
+	} else if m.options.Type == ModalTypeInterval {
+		err := m.storage.ChangeInterval(intervals[index])
+		if err != nil {
+			return m.options.Type, err
+		}
+	} else if m.options.Type == ModalTypeRefresh {
+		m.storage.ChangeRefresh(refreshs[index])
+	}
+
+	return m.options.Type, nil
 }

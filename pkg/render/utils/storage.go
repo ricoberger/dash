@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ricoberger/dash/pkg/dashboard"
+	fLog "github.com/ricoberger/dash/pkg/log"
 )
 
 const (
@@ -53,6 +54,7 @@ func (s *Storage) Dashboard() dashboard.Dashboard {
 }
 
 func (s *Storage) ChangeDashboard(active int) error {
+	fLog.Debugf("change dashboard index to %d", active)
 	s.ActiveDashboard = active
 	s.VariableValues = make(map[string]string)
 	return s.loadVariables()
@@ -71,11 +73,13 @@ func (s *Storage) GetVariableValues() []string {
 }
 
 func (s *Storage) ChangeVariable(name, value string) error {
+	fLog.Debugf("change variable %s to %s", name, value)
 	s.VariableValues[name] = value
 	return s.loadVariables()
 }
 
 func (s *Storage) ChangeInterval(interval string) error {
+	fLog.Debugf("change interval to %s", interval)
 	start, end := GetStartAndEndTime(interval)
 	s.Interval.Interval = interval
 	s.Interval.Start = start
@@ -111,6 +115,7 @@ func (s *Storage) GetRefresh() time.Duration {
 }
 
 func (s *Storage) ChangeRefresh(refresh string) {
+	fLog.Debugf("change refresh to %s", refresh)
 	s.Refresh = refresh
 }
 

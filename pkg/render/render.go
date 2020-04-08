@@ -1,18 +1,21 @@
 package render
 
 import (
+	"context"
 	"errors"
-	"os"
-	"os/signal"
 	"strconv"
-	"syscall"
 	"time"
 
 	"github.com/ricoberger/dash/pkg/dashboard"
+	fLog "github.com/ricoberger/dash/pkg/log"
 	"github.com/ricoberger/dash/pkg/render/utils"
 	"github.com/ricoberger/dash/pkg/render/widget"
 
-	ui "github.com/gizak/termui/v3"
+	"github.com/mum4k/termdash"
+	"github.com/mum4k/termdash/container"
+	"github.com/mum4k/termdash/keyboard"
+	"github.com/mum4k/termdash/terminal/termbox"
+	"github.com/mum4k/termdash/terminal/terminalapi"
 )
 
 var (
@@ -20,6 +23,9 @@ var (
 )
 
 func Run(dashboards []dashboard.Dashboard, initialInterval, initialRefresh string) error {
+	// Check if there was at least one dashboard provided. This is required for the storage implementation, because we
+	// choose the first dashboard as the initial one.
+	// When the check succeeded we create the storage, which holds the current state of dash.
 	if len(dashboards) == 0 {
 		return ErrNoDashboards
 	}
@@ -29,102 +35,107 @@ func Run(dashboards []dashboard.Dashboard, initialInterval, initialRefresh strin
 		return err
 	}
 
-	// Initialize termui.
-	if err := ui.Init(); err != nil {
+	// Initialize termdash.
+	// We create the statusbar, modal and the grid. The initial view shows the statusbar and grid. If an item from the
+	// statusbar is selected the modal content will be rendered instead of the grid.
+	t, err := termbox.New()
+	if err != nil {
 		return err
 	}
-	defer ui.Close()
+	defer t.Close()
+
+	statusbar, err := widget.NewStatusbar(t.Size().X, storage)
+	if err != nil {
+		return err
+	}
+	modal, err := widget.NewModal(storage)
+	if err != nil {
+		return err
+	}
+
+	gridOpts := widget.GridLayout(storage)
+
+	c, err := container.New(t, container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(gridOpts...), container.SplitFixed(1)), container.ID("layout"))
+	if err != nil {
+		return err
+	}
 
 	var modalActive bool
-	var previousKey string
+	var previousKey keyboard.Key
 
-	termWidth, termHeight := ui.TerminalDimensions()
-	statusbar := widget.NewStatusbar(termWidth, termHeight, storage)
-	grid := widget.NewGrid(termWidth, termHeight, storage)
-	grid.Refresh()
-	modal := widget.NewModal(termWidth, termHeight, storage)
+	ctx, cancel := context.WithCancel(context.Background())
 
-	ui.Render(statusbar, grid, modal)
-
-	sigTerm := make(chan os.Signal, 2)
-	signal.Notify(sigTerm, os.Interrupt, syscall.SIGTERM)
 	ticker := time.NewTicker(storage.GetRefresh())
+	defer ticker.Stop()
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				fLog.Debugf("refresh was triggered")
+				statusbar.Update(t.Size().X)
+				gridOpts = widget.GridLayout(storage)
+				c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(gridOpts...), container.SplitFixed(1)))
+			case <-ctx.Done():
+				return
+			}
+		}
+	}()
 
-	for {
-		select {
-		case <-sigTerm:
-			return nil
-		case <-ticker.C:
-			storage.RefreshInterval()
-			grid = widget.NewGrid(termWidth, termHeight, storage)
-			ui.Render(statusbar, grid, modal)
-		case e := <-ui.PollEvents():
-			switch e.ID {
-			case "q", "<C-c>":
-				return nil
-			case "<Resize>":
-				payload := e.Payload.(ui.Resize)
-				statusbar.SetRect(0, 0, payload.Width, 1)
-				grid.SetRect(0, 1, payload.Width, payload.Height)
-				modal.SetDimensions(payload.Width, payload.Height)
-				ui.Render(statusbar, grid, modal)
-			case "j", "<Down>":
-				if modalActive {
-					modal.ScrollDown()
-					ui.Render(statusbar, grid, modal)
-				}
-			case "k", "<Up>":
-				if modalActive {
-					modal.ScrollUp()
-					ui.Render(statusbar, grid, modal)
-				}
-			case "<Enter>":
-				if modalActive {
-					modalType := modal.Select()
+	keyboardSubscriber := func(k *terminalapi.Keyboard) {
+		fLog.Debugf("key %s was pressed", k.Key)
+		switch k.Key {
+		case 'q', keyboard.KeyCtrlC:
+			cancel()
+		case keyboard.KeyEnter:
+			if modalActive {
+				modalType, err := modal.Select()
+				if err == nil {
 					if modalType == widget.ModalTypeDashboard {
 						storage.RefreshInterval()
-						grid = widget.NewGrid(termWidth, termHeight, storage)
 					} else if modalType == widget.ModalTypeVariable {
 						storage.RefreshInterval()
-						grid = widget.NewGrid(termWidth, termHeight, storage)
 					} else if modalType == widget.ModalTypeInterval {
 						storage.RefreshInterval()
-						grid = widget.NewGrid(termWidth, termHeight, storage)
 					} else if modalType == widget.ModalTypeRefresh {
 						ticker = time.NewTicker(storage.GetRefresh())
 					}
 
-					modal.Hide()
 					modalActive = false
-					ui.Render(statusbar, grid, modal)
+					statusbar.Update(t.Size().X)
+					gridOpts = widget.GridLayout(storage)
+					c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(gridOpts...), container.SplitFixed(1)))
 				}
-			case "<Escape>":
-				if modalActive {
-					modal.Hide()
-					modalActive = false
-					ui.Render(statusbar, grid, modal)
-				}
-			case "d":
-				modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeDashboard, VariableIndex: 0})
-				ui.Clear()
-				ui.Render(statusbar, grid, modal)
-			case "1", "2", "3", "4", "5", "6", "7", "8", "9":
-				if previousKey == "v" {
-					variableIndex, err := strconv.Atoi(e.ID)
-					if err == nil {
-						modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeVariable, VariableIndex: variableIndex})
-						ui.Render(statusbar, grid, modal)
-					}
-				}
-			case "i":
-				modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeInterval, VariableIndex: 0})
-				ui.Render(statusbar, grid, modal)
-			case "r":
-				modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeRefresh, VariableIndex: 0})
-				ui.Render(statusbar, grid, modal)
 			}
-
-			previousKey = e.ID
+		case 'd':
+			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeDashboard, VariableIndex: 0})
+			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
+		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
+			if modalActive {
+				modal.SelectIndex(string(k.Key))
+			} else if previousKey == 'v' && k.Key != '0' {
+				variableIndex, err := strconv.Atoi(string(k.Key))
+				if err == nil && variableIndex <= len(storage.Dashboard().Variables) {
+					modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeVariable, VariableIndex: variableIndex - 1})
+					c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
+				}
+			}
+		case 'i':
+			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeInterval, VariableIndex: 0})
+			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
+		case 'r':
+			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeRefresh, VariableIndex: 0})
+			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
+		case keyboard.KeyEsc:
+			modalActive = false
+			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(gridOpts...), container.SplitFixed(1)))
 		}
+
+		previousKey = k.Key
 	}
+
+	if err := termdash.Run(ctx, t, c, termdash.KeyboardSubscriber(keyboardSubscriber)); err != nil {
+		return err
+	}
+
+	return nil
 }

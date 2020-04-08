@@ -5,149 +5,169 @@ variables:
     query: node_uname_info
     label: instance
 rows:
-  - height: 0.1
+  - height: 10
     graphs:
-      - width: 0.25
+      - width: 25
         datasource: prometheus
         type: singlestat
         title: CPU Cores
         queries:
-          - count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu))
-      - width: 0.25
+          - query: count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu))
+      - width: 25
         datasource: prometheus
         type: singlestat
         title: RAM Total
         queries:
-          - node_memory_MemTotal_bytes{instance=~"{{.instance}}"}
+          - query: node_memory_MemTotal_bytes{instance=~"{{.instance}}"} / 1024 / 1024 / 1024
         options:
-          unit: Bytes
-      - width: 0.25
+          unit: GB
+      - width: 25
         datasource: prometheus
         type: singlestat
         title: SWAP Total
         queries:
-          - node_memory_SwapTotal_bytes{instance=~"{{.instance}}"}
+          - query: node_memory_SwapTotal_bytes{instance=~"{{.instance}}"} / 1024 / 1024 / 1024
         options:
-          unit: Bytes
-      - width: 0.25
+          unit: GB
+      - width: 25
         datasource: prometheus
         type: singlestat
         title: Root FS Total
         queries:
-          - node_filesystem_size_bytes{instance=~"{{.instance}}",mountpoint="/",fstype!="rootfs"}
+          - query: node_filesystem_size_bytes{instance=~"{{.instance}}",mountpoint="/",fstype!="rootfs"} / 1024 / 1024 / 1024
         options:
-          unit: Bytes
+          unit: GB
 
-  - height: 0.1
+  - height: 10
     graphs:
-      - width: 0.25
+      - width: 25
         datasource: prometheus
         type: gauge
         title: CPU Busy
         queries:
-          - (((count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu))) - avg(sum by (mode)(irate(node_cpu_seconds_total{mode='idle',instance=~"{{.instance}}"}[5m])))) * 100) / count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu))
+          - query: (((count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu))) - avg(sum by (mode)(irate(node_cpu_seconds_total{mode='idle',instance=~"{{.instance}}"}[5m])))) * 100) / count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu))
         options:
           thresholds: [85,95]
           colors: ["green", "yellow", "red"]
-      - width: 0.25
+      - width: 25
         datasource: prometheus
         type: gauge
         title: RAM Used
         queries:
-          - 100 - ((node_memory_MemAvailable_bytes{instance=~"{{.instance}}"} * 100) / node_memory_MemTotal_bytes{instance=~"{{.instance}}"})
+          - query: 100 - ((node_memory_MemAvailable_bytes{instance=~"{{.instance}}"} * 100) / node_memory_MemTotal_bytes{instance=~"{{.instance}}"})
         options:
           thresholds: [80,90]
           colors: ["green", "yellow", "red"]
-      - width: 0.25
+      - width: 25
         datasource: prometheus
         type: gauge
         title: SWAP Used
         queries:
-          - ((node_memory_SwapTotal_bytes{instance=~"{{.instance}}"} - node_memory_SwapFree_bytes{instance=~"{{.instance}}"}) / (node_memory_SwapTotal_bytes{instance=~"{{.instance}}"} )) * 100
+          - query: ((node_memory_SwapTotal_bytes{instance=~"{{.instance}}"} - node_memory_SwapFree_bytes{instance=~"{{.instance}}"}) / (node_memory_SwapTotal_bytes{instance=~"{{.instance}}"} )) * 100
         options:
           thresholds: [80,90]
           colors: ["green", "yellow", "red"]
-      - width: 0.25
+      - width: 25
         datasource: prometheus
         type: gauge
         title: Root FS Used
         queries:
-          - 100 - ((node_filesystem_avail_bytes{instance=~"{{.instance}}",mountpoint="/",fstype!="rootfs"} * 100) / node_filesystem_size_bytes{instance=~"{{.instance}}",mountpoint="/",fstype!="rootfs"})
+          - query: 100 - ((node_filesystem_avail_bytes{instance=~"{{.instance}}",mountpoint="/",fstype!="rootfs"} * 100) / node_filesystem_size_bytes{instance=~"{{.instance}}",mountpoint="/",fstype!="rootfs"})
         options:
           thresholds: [80,90]
           colors: ["green", "yellow", "red"]
 
-  - height: 0.1
+  - height: 10
     graphs:
-      - width: 0.33
+      - width: 33
         datasource: prometheus
-        type: gauge
+        type: donut
         title: Sys Load (5m avg)
         queries:
-          - avg(node_load1{instance=~"{{.instance}}"}) /  count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu)) * 100
+          - query: avg(node_load1{instance=~"{{.instance}}"}) /  count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu)) * 100
         options:
           thresholds: [85,95]
           colors: ["green", "yellow", "red"]
-      - width: 0.33
+      - width: 34
         datasource: prometheus
-        type: gauge
+        type: donut
         title: Sys Load (5m avg)
         queries:
-          - avg(node_load5{instance=~"{{.instance}}"}) /  count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu)) * 100
+          - query: avg(node_load5{instance=~"{{.instance}}"}) /  count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu)) * 100
         options:
           thresholds: [85,95]
           colors: ["green", "yellow", "red"]
-      - width: 0.33
+      - width: 33
         datasource: prometheus
-        type: gauge
+        type: donut
         title: Sys Load (15m avg)
         queries:
-          - avg(node_load15{instance=~"{{.instance}}"}) /  count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu)) * 100
+          - query: avg(node_load15{instance=~"{{.instance}}"}) /  count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu)) * 100
         options:
           thresholds: [85,95]
           colors: ["green", "yellow", "red"]
 
-  - height: 0.4
+  - height: 35
     graphs:
-      - width: 0.5
+      - width: 50
         datasource: prometheus
-        type: plot
+        type: linechart
         title: CPU Basic
         queries:
-          - sum by (instance,mode)(irate(node_cpu_seconds_total{mode="system",instance=~"{{.instance}}"}[5m])) * 100
-          - sum by (instance,mode)(irate(node_cpu_seconds_total{mode='user',instance=~"{{.instance}}"}[5m])) * 100
-          - sum by (instance,mode)(irate(node_cpu_seconds_total{mode='iowait',instance=~"{{.instance}}"}[5m])) * 100
-          - sum by (instance,mode)(irate(node_cpu_seconds_total{mode=~".*irq",instance=~"{{.instance}}"}[5m])) * 100
-          - sum by (mode)(irate(node_cpu_seconds_total{mode='idle',instance=~"{{.instance}}"}[5m])) * 100
+          - query: sum by (instance,mode)(irate(node_cpu_seconds_total{mode="system",instance=~"{{.instance}}"}[5m])) * 100
+            label: "Busy System"
+          - query: sum by (instance,mode)(irate(node_cpu_seconds_total{mode='user',instance=~"{{.instance}}"}[5m])) * 100
+            label: "Busy User"
+          - query: sum by (instance,mode)(irate(node_cpu_seconds_total{mode='iowait',instance=~"{{.instance}}"}[5m])) * 100
+            label: "Busy Iowait"
+          - query: sum by (instance,mode)(irate(node_cpu_seconds_total{mode=~".*irq",instance=~"{{.instance}}"}[5m])) * 100
+            label: "Busy IRQs"
+          - query: sum (irate(node_cpu_seconds_total{mode!='idle',mode!='user',mode!='system',mode!='iowait',mode!='irq',mode!='softirq',instance=~"{{.instance}}"}[5m])) * 100
+            label: "Busy Other"
+          - query: sum by (mode)(irate(node_cpu_seconds_total{mode='idle',instance=~"{{.instance}}"}[5m])) * 100
+            label: "Idle"
         options:
-          label: mode
-      - width: 0.5
+          legend: "bottom"
+      - width: 50
         datasource: prometheus
-        type: plot
+        type: linechart
         title: Memory Used Basic
         queries:
-          - (node_memory_MemTotal_bytes{instance=~"{{.instance}}"} - node_memory_MemFree_bytes{instance=~"{{.instance}}"} - (node_memory_Cached_bytes{instance=~"{{.instance}}"} + node_memory_Buffers_bytes{instance=~"{{.instance}}"})) / 1024 / 1024 / 1024
+          - query: (node_memory_MemTotal_bytes{instance=~"{{.instance}}"} - node_memory_MemFree_bytes{instance=~"{{.instance}}"} - (node_memory_Cached_bytes{instance=~"{{.instance}}"} + node_memory_Buffers_bytes{instance=~"{{.instance}}"})) / 1024 / 1024 / 1024
+            label: "RAM Total"
+          - query: node_memory_MemTotal_bytes{instance=~"{{.instance}}"} - node_memory_MemFree_bytes{instance=~"{{.instance}}"} - (node_memory_Cached_bytes{instance=~"{{.instance}}"} + node_memory_Buffers_bytes{instance=~"{{.instance}}"})
+            label: "RAM Used"
+          - query: node_memory_Cached_bytes{instance=~"{{.instance}}"} + node_memory_Buffers_bytes{instance=~"{{.instance}}"}
+            label: "RAM Cache + Buffer"
+          - query: node_memory_MemFree_bytes{instance=~"{{.instance}}"}
+            label: "RAM Free"
+          - query: (node_memory_SwapTotal_bytes{instance=~"{{.instance}}"} - node_memory_SwapFree_bytes{instance=~"{{.instance}}"})
+            label: "SWAP Used"
         options:
-          label: instance
+          legend: "bottom"
           unit: GB
-  - height: 0.3
+
+  - height: 35
     graphs:
-      - width: 0.5
+      - width: 50
         datasource: prometheus
-        type: sparkline
+        type: linechart
         title: Network Traffic Basic
         queries:
-          - irate(node_network_transmit_bytes_total{instance=~"{{.instance}}"}[5m])*8
-          - irate(node_network_receive_bytes_total{instance=~"{{.instance}}"}[5m])*8
+          - query: irate(node_network_transmit_bytes_total{instance=~"{{.instance}}"}[5m])*8
+            label: "trans {{.device}}"
+          - query: irate(node_network_receive_bytes_total{instance=~"{{.instance}}"}[5m])*8
+            label: "recv {{.device}}"
         options:
-          label: device
+          legend: "right"
           unit: bits/sec
-      - width: 0.5
+      - width: 50
         datasource: prometheus
-        type: plot
+        type: linechart
         title: Disk Space Used Basic
         queries:
-          - 100 - ((node_filesystem_avail_bytes{instance=~"{{.instance}}",device!~'rootfs',fstype=~"ext4|vfat"} * 100) / node_filesystem_size_bytes{instance=~"{{.instance}}",device!~'rootfs',fstype=~"ext4|vfat"})
+          - query: 100 - ((node_filesystem_avail_bytes{instance=~"{{.instance}}",device!~'rootfs',fstype=~"ext4|vfat"} * 100) / node_filesystem_size_bytes{instance=~"{{.instance}}",device!~'rootfs',fstype=~"ext4|vfat"})
+            label: "{{.mountpoint}}"
         options:
-          label: mountpoint
+          legend: "right"
           unit: "%"

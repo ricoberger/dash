@@ -2,121 +2,113 @@ package widget
 
 import (
 	"fmt"
+	"github.com/ricoberger/dash/pkg/dashboard"
+	"github.com/ricoberger/dash/pkg/datasource"
+	fLog "github.com/ricoberger/dash/pkg/log"
+	"github.com/ricoberger/dash/pkg/render/utils"
+	"log"
 	"math"
 	"strconv"
 	"strings"
 
-	"github.com/ricoberger/dash/pkg/dashboard"
-	"github.com/ricoberger/dash/pkg/datasource"
-	"github.com/ricoberger/dash/pkg/render/utils"
-	cPlot "github.com/ricoberger/dash/pkg/render/widget/plot"
-
-	ui "github.com/gizak/termui/v3"
-	"github.com/gizak/termui/v3/widgets"
+	"github.com/mum4k/termdash/align"
+	"github.com/mum4k/termdash/cell"
+	"github.com/mum4k/termdash/container"
+	"github.com/mum4k/termdash/container/grid"
+	"github.com/mum4k/termdash/linestyle"
+	"github.com/mum4k/termdash/widgets/donut"
+	"github.com/mum4k/termdash/widgets/gauge"
+	"github.com/mum4k/termdash/widgets/linechart"
+	"github.com/mum4k/termdash/widgets/segmentdisplay"
+	"github.com/mum4k/termdash/widgets/sparkline"
+	"github.com/mum4k/termdash/widgets/text"
 )
 
-type Grid struct {
-	*ui.Grid
+var colors = []cell.Color{cell.ColorBlue, cell.ColorCyan, cell.ColorGreen, cell.ColorMagenta, cell.ColorRed, cell.ColorWhite, cell.ColorYellow, cell.ColorWhite}
 
-	storage *utils.Storage
-}
-
-func NewGrid(termWidth, termHeight int, storage *utils.Storage) *Grid {
-	grid := ui.NewGrid()
-	grid.SetRect(0, 1, termWidth, termHeight)
-
-	var rows []interface{}
+func GridLayout(storage *utils.Storage) []container.Option {
+	var rows []grid.Element
 
 	for _, row := range storage.Dashboard().Rows {
-		var cols []interface{}
+		var cols []grid.Element
 
 		for _, graph := range row.Graphs {
-			var components []interface{}
+			// var component widgetapi.Widget
+			var component grid.Element
 
 			data, err := graph.GetData(storage.VariableValues, storage.Interval.Start, storage.Interval.End)
 			if err != nil {
-				p := widgets.NewParagraph()
-				p.Title = graph.Title
-				p.Text = fmt.Sprintf("Could not load data: %s", err.Error())
-				components = append(components, p)
+				component = renderError(graph, fmt.Sprintf("Could not load data: %s", err.Error()))
 			} else {
+				fLog.Debugf("render %d for %s", len(data.Series), graph.Title)
+
 				switch graph.Type {
 				case "singlestat":
-					components = append(components, singlestat(graph, data)...)
+					component, err = singlestatPanel(graph, data)
+					if err != nil {
+						component = renderError(graph, fmt.Sprintf("Could not render singlestat %s: %s", graph.Title, err.Error()))
+					}
 				case "gauge":
-					components = append(components, gauge(graph, data)...)
+					component, err = gaugePanel(graph, data)
+					if err != nil {
+						component = renderError(graph, fmt.Sprintf("Could not render gauge %s: %s", graph.Title, err.Error()))
+					}
+				case "donut":
+					component, err = donutPanel(graph, data)
+					if err != nil {
+						component = renderError(graph, fmt.Sprintf("Could not render donut %s: %s", graph.Title, err.Error()))
+					}
 				case "sparkline":
-					components = append(components, sparkline(graph, data)...)
-				case "plot":
-					components = append(components, plot(graph, data)...)
+					component, err = sparklinePanel(graph, data)
+					if err != nil {
+						component = renderError(graph, fmt.Sprintf("Could not render sparkline %s: %s", graph.Title, err.Error()))
+					}
+				case "linechart":
+					component, err = linechartPanel(graph, data)
+					if err != nil {
+						component = renderError(graph, fmt.Sprintf("Could not load render linechart %s: %s", graph.Title, err.Error()))
+					}
 				}
 			}
 
-			cols = append(cols, ui.NewCol(graph.Width, components...))
+			cols = append(cols, grid.ColWidthPerc(graph.Width, component))
+
+			/*cols = append(cols, grid.ColWidthPerc(graph.Width, grid.Widget(
+				component,
+				container.Border(linestyle.Light),
+				container.BorderTitle(graph.Title),
+				container.AlignHorizontal(align.HorizontalCenter),
+				container.AlignVertical(align.VerticalMiddle),
+			)))*/
 		}
 
-		rows = append(rows, ui.NewRow(row.Height, cols...))
+		rows = append(rows, grid.RowHeightPerc(row.Height, cols...))
 	}
 
-	grid.Set(rows...)
-
-	return &Grid{
-		grid,
-
-		storage,
-	}
+	builder := grid.New()
+	builder.Add(rows...)
+	gridOpts, _ := builder.Build()
+	return gridOpts
 }
 
-func (g *Grid) Refresh() {
-	g.storage.RefreshInterval()
-	var rows []interface{}
+func renderError(graph dashboard.Graph, err string) grid.Element {
+	log.Printf(err)
+	txt, _ := text.New()
+	txt.Write(err)
 
-	for _, row := range g.storage.Dashboard().Rows {
-		var cols []interface{}
-
-		for _, graph := range row.Graphs {
-			var components []interface{}
-
-			data, err := graph.GetData(g.storage.VariableValues, g.storage.Interval.Start, g.storage.Interval.End)
-			if err != nil {
-				p := widgets.NewParagraph()
-				p.Title = graph.Title
-				p.Text = fmt.Sprintf("Could not load data: %s", err.Error())
-				components = append(components, p)
-			} else {
-				switch graph.Type {
-				case "singlestat":
-					components = append(components, singlestat(graph, data)...)
-				case "gauge":
-					components = append(components, gauge(graph, data)...)
-				case "sparkline":
-					components = append(components, sparkline(graph, data)...)
-				case "plot":
-					components = append(components, plot(graph, data)...)
-				}
-			}
-
-			cols = append(cols, ui.NewCol(graph.Width, components...))
-		}
-
-		rows = append(rows, ui.NewRow(row.Height, cols...))
-	}
-
-	g.Set(rows...)
+	return grid.Widget(
+		txt,
+		container.Border(linestyle.Light),
+		container.BorderTitle(graph.Title),
+		container.AlignHorizontal(align.HorizontalCenter),
+		container.AlignVertical(align.VerticalMiddle),
+	)
 }
 
-func singlestat(graph dashboard.Graph, data []datasource.Data) []interface{} {
-	single := widgets.NewParagraph()
-	single.Title = graph.Title
-
-	var prefix string
-	if graph.Options.Prefix != "" {
-		prefix = graph.Options.Prefix + " "
-	}
-
-	var postfix string
-	if graph.Options.Postfix != "" {
-		postfix = " " + graph.Options.Postfix
+func singlestatPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element, error) {
+	single, err := segmentdisplay.New()
+	if err != nil {
+		return nil, err
 	}
 
 	if len(graph.Options.Stats) == 0 {
@@ -124,19 +116,20 @@ func singlestat(graph dashboard.Graph, data []datasource.Data) []interface{} {
 	}
 
 	var value string
+	var color cell.Color
 
-	if len(data) == 0 {
+	if len(data.Series) == 0 {
 		value = "N/A"
 	} else {
 		if graph.Options.Stats[0] == "name" {
-			value = getLabelValue(graph.Options.Label, data[0].Labels)
+			value = data.Series[0].Label
 		} else {
-			floatValue := getStatValue(graph.Options.Stats[0], data[0].Points)
+			floatValue := getStatValue(graph.Options.Stats[0], data.Series[0].Points)
 			if len(graph.Options.Thresholds) > 0 && len(graph.Options.Thresholds)+1 == len(graph.Options.Colors) {
-				single.TextStyle.Fg = getColor(graph.Options.Colors[len(graph.Options.Colors)-1])
+				color = getColor(graph.Options.Colors[len(graph.Options.Colors)-1])
 				for index, threshold := range graph.Options.Thresholds {
 					if floatValue < threshold {
-						single.TextStyle.Fg = getColor(graph.Options.Colors[index])
+						color = getColor(graph.Options.Colors[index])
 						break
 					}
 				}
@@ -146,158 +139,216 @@ func singlestat(graph dashboard.Graph, data []datasource.Data) []interface{} {
 		}
 	}
 
-	single.Text = prefix + value + graph.Options.Unit + postfix
-	single.WrapText = true
+	var chunks []*segmentdisplay.TextChunk
+	chunk := segmentdisplay.NewChunk(value+" "+graph.Options.Unit, segmentdisplay.WriteCellOpts(cell.FgColor(color)))
+	chunks = append(chunks, chunk)
 
-	components := make([]interface{}, 1)
-	components[0] = single
-	return components
+	err = single.Write(chunks)
+	if err != nil {
+		return nil, err
+	}
+
+	return grid.Widget(single, container.Border(linestyle.Light), container.BorderTitle(graph.Title), container.AlignHorizontal(align.HorizontalCenter), container.AlignVertical(align.VerticalMiddle)), nil
 }
 
-func gauge(graph dashboard.Graph, data []datasource.Data) []interface{} {
-	var components []interface{}
-
+func gaugePanel(graph dashboard.Graph, data *datasource.Data) (grid.Element, error) {
 	if len(graph.Options.Stats) == 0 {
 		graph.Options.Stats = []string{"current"}
 	}
 
-	for _, d := range data {
-		g := widgets.NewGauge()
+	var value float64
+	var color cell.Color
 
-		title := graph.Title
-		if graph.Options.Label != "" {
-			title = title + " - " + getLabelValue(graph.Options.Label, d.Labels)
+	if len(data.Series) == 0 || math.IsNaN(data.Series[0].Points[0]) {
+		value = 0
+	} else {
+		value = getStatValue(graph.Options.Stats[0], data.Series[0].Points)
+		if len(graph.Options.Thresholds) > 0 && len(graph.Options.Thresholds)+1 == len(graph.Options.Colors) {
+			color = getColor(graph.Options.Colors[len(graph.Options.Colors)-1])
+			for index, threshold := range graph.Options.Thresholds {
+				if value < threshold {
+					color = getColor(graph.Options.Colors[index])
+					break
+				}
+			}
+		}
+	}
+
+	g, err := gauge.New(gauge.Color(color))
+	if err != nil {
+		return nil, err
+	}
+
+	err = g.Percent(int(value))
+	if err != nil {
+		return nil, err
+	}
+
+	return grid.Widget(g, container.Border(linestyle.Light), container.BorderTitle(graph.Title), container.AlignHorizontal(align.HorizontalCenter), container.AlignVertical(align.VerticalMiddle)), nil
+}
+
+func donutPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element, error) {
+	if len(graph.Options.Stats) == 0 {
+		graph.Options.Stats = []string{"current"}
+	}
+
+	var value float64
+	var color cell.Color
+
+	if len(data.Series) == 0 || math.IsNaN(data.Series[0].Points[0]) {
+		value = 0
+	} else {
+		value = getStatValue(graph.Options.Stats[0], data.Series[0].Points)
+		if len(graph.Options.Thresholds) > 0 && len(graph.Options.Thresholds)+1 == len(graph.Options.Colors) {
+			color = getColor(graph.Options.Colors[len(graph.Options.Colors)-1])
+			for index, threshold := range graph.Options.Thresholds {
+				if value < threshold {
+					color = getColor(graph.Options.Colors[index])
+					break
+				}
+			}
+		}
+	}
+
+	d, err := donut.New(donut.CellOpts(cell.FgColor(color)))
+	if err != nil {
+		return nil, err
+	}
+
+	err = d.Percent(int(value))
+	if err != nil {
+		return nil, err
+	}
+
+	return grid.Widget(d, container.Border(linestyle.Light), container.BorderTitle(graph.Title), container.AlignHorizontal(align.HorizontalCenter), container.AlignVertical(align.VerticalMiddle)), nil
+}
+
+func sparklinePanel(graph dashboard.Graph, data *datasource.Data) (grid.Element, error) {
+	var values []int
+	var color cell.Color
+	var label string
+
+	if len(data.Series) > 0 {
+		for _, value := range data.Series[0].Points {
+			values = append(values, int(value))
 		}
 
-		g.Title = title
-
-		var value float64
-		if len(d.Points) == 0 || math.IsNaN(d.Points[0]) {
-			value = 0
-		} else {
-			value = getStatValue(graph.Options.Stats[0], d.Points)
-			if len(graph.Options.Thresholds) > 0 && len(graph.Options.Thresholds)+1 == len(graph.Options.Colors) {
-				g.BarColor = getColor(graph.Options.Colors[len(graph.Options.Colors)-1])
-				for index, threshold := range graph.Options.Thresholds {
-					if value < threshold {
-						g.BarColor = getColor(graph.Options.Colors[index])
-						break
-					}
+		if len(graph.Options.Thresholds) > 0 && len(graph.Options.Thresholds)+1 == len(graph.Options.Colors) {
+			color = getColor(graph.Options.Colors[len(graph.Options.Colors)-1])
+			for index, threshold := range graph.Options.Thresholds {
+				if values[len(values)-1] < int(threshold) {
+					color = getColor(graph.Options.Colors[index])
+					break
 				}
 			}
 		}
 
-		g.Percent = int(value)
-		components = append(components, ui.NewRow(1.0/float64(len(data)), g))
+		label = fmt.Sprintf("%s: %s %s", data.Series[0].Label, strconv.FormatFloat(data.Series[0].Points[len(data.Series[0].Points)-1], 'f', graph.Options.Decimals, 64), graph.Options.Unit)
 	}
 
-	return components
-}
-
-func sparkline(graph dashboard.Graph, data []datasource.Data) []interface{} {
-	var sls []*widgets.Sparkline
-
-	for _, d := range data {
-		sl := widgets.NewSparkline()
-		sl.Data = d.Points
-		sl.Title = getLabelValue(graph.Options.Label, d.Labels)
-
-		if len(d.Points) > 0 {
-			sl.Title = sl.Title + ": " + strconv.FormatFloat(d.Points[len(d.Points)-1], 'f', graph.Options.Decimals, 64) + graph.Options.Unit
-
-			var stats []string
-			for _, stat := range graph.Options.Stats {
-				stats = append(stats, stat+": "+strconv.FormatFloat(getStatValue(stat, d.Points), 'f', graph.Options.Decimals, 64))
-			}
-
-			if len(stats) > 0 {
-				sl.Title = sl.Title + " (" + strings.Join(stats, ", ") + ")"
-			}
-
-			if len(graph.Options.Thresholds) > 0 && len(graph.Options.Thresholds)+1 == len(graph.Options.Colors) {
-				sl.LineColor = getColor(graph.Options.Colors[len(graph.Options.Colors)-1])
-				for index, threshold := range graph.Options.Thresholds {
-					if d.Points[len(d.Points)-1] < threshold {
-						sl.LineColor = getColor(graph.Options.Colors[index])
-						break
-					}
-				}
-			}
-		}
-
-		sls = append(sls, sl)
+	s, err := sparkline.New(sparkline.Label(label, cell.FgColor(color)), sparkline.Color(color))
+	if err != nil {
+		return nil, err
 	}
 
-	slg := widgets.NewSparklineGroup(sls...)
-	slg.Title = graph.Title
+	err = s.Add(values)
+	if err != nil {
+		return nil, err
+	}
 
-	components := make([]interface{}, 1)
-	components[0] = slg
-	return components
+	return grid.Widget(s, container.Border(linestyle.Light), container.BorderTitle(graph.Title), container.AlignHorizontal(align.HorizontalCenter), container.AlignVertical(align.VerticalMiddle)), nil
 }
 
-func plot(graph dashboard.Graph, data []datasource.Data) []interface{} {
-	plot := cPlot.NewPlot()
-	plot.Title = graph.Title
+func linechartPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element, error) {
+	lc, err := linechart.New()
+	if err != nil {
+		return nil, err
+	}
 
-	plotData := make([][]float64, len(data))
-	var plotLabels []string
-	for index, d := range data {
-		plotData[index] = d.Points
+	legend, err := text.New(text.WrapAtRunes())
+	if err != nil {
+		return nil, err
+	}
 
+	for index, series := range data.Series {
 		var stats []string
 		for _, stat := range graph.Options.Stats {
-			stats = append(stats, stat+": "+strconv.FormatFloat(getStatValue(stat, d.Points), 'f', graph.Options.Decimals, 64))
+			stats = append(stats, fmt.Sprintf("%s: %s", stat, strconv.FormatFloat(getStatValue(stat, series.Points), 'f', graph.Options.Decimals, 64)))
 		}
 
+		var statsLegend string
 		if len(stats) > 0 {
-			plotLabels = append(plotLabels, getLabelValue(graph.Options.Label, d.Labels)+": "+strconv.FormatFloat(d.Points[len(d.Points)-1], 'f', graph.Options.Decimals, 64)+graph.Options.Unit+" ("+strings.Join(stats, ", ")+")")
+			statsLegend = fmt.Sprintf("%s %s (%s)", strconv.FormatFloat(getStatValue("current", series.Points), 'f', graph.Options.Decimals, 64), graph.Options.Unit, strings.Join(stats, ", "))
 		} else {
-			plotLabels = append(plotLabels, getLabelValue(graph.Options.Label, d.Labels)+": "+strconv.FormatFloat(d.Points[len(d.Points)-1], 'f', graph.Options.Decimals, 64)+graph.Options.Unit)
+			statsLegend = fmt.Sprintf("%s %s", strconv.FormatFloat(getStatValue("current", series.Points), 'f', graph.Options.Decimals, 64), graph.Options.Unit)
 		}
 
+		if graph.Options.Legend == "bottom" {
+			err = legend.Write(fmt.Sprintf("%s: %s   ", series.Label, statsLegend), text.WriteCellOpts(cell.FgColor(colors[index])))
+			if err != nil {
+				return nil, err
+			}
+		} else if graph.Options.Legend == "right" {
+			err = legend.Write(fmt.Sprintf("%s: %s\n", series.Label, statsLegend), text.WriteCellOpts(cell.FgColor(colors[index])))
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		if index == 0 {
+			err = lc.Series(series.Label, series.Points, linechart.SeriesCellOpts(cell.FgColor(colors[index])), linechart.SeriesXLabels(data.Timestamps))
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			err = lc.Series(series.Label, series.Points, linechart.SeriesCellOpts(cell.FgColor(colors[index])))
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
-	plot.Data = plotData
-	plot.DataLabels = plotLabels
+	// Render linechart and legend
+	// See: https://github.com/slok/grafterm/blob/master/internal/view/render/termdash/graph.go
+	graphElement := grid.Widget(lc)
 
-	components := make([]interface{}, 1)
-	components[0] = plot
-	return components
+	var elements []grid.Element
+	switch graph.Options.Legend {
+	case "bottom":
+		legendElement := grid.RowHeightPercWithOpts(99, []container.Option{container.PaddingTopPercent(50)}, grid.Widget(legend))
+		elements = []grid.Element{grid.RowHeightPerc(90, graphElement), grid.RowHeightPerc(4, legendElement)}
+	case "right":
+		legendElement := grid.ColWidthPercWithOpts(99, []container.Option{container.PaddingLeftPercent(10)}, grid.Widget(legend))
+		elements = []grid.Element{grid.ColWidthPerc(80, graphElement), grid.ColWidthPerc(19, legendElement)}
+	default:
+		elements = []grid.Element{grid.ColWidthPerc(99, graphElement)}
+	}
+
+	opts := []container.Option{container.Border(linestyle.Light), container.BorderTitle(graph.Title), container.AlignHorizontal(align.HorizontalCenter), container.AlignVertical(align.VerticalMiddle)}
+	element := grid.RowHeightPercWithOpts(99, opts, elements...)
+
+	return element, nil
 }
 
-func getColor(color string) ui.Color {
+func getColor(color string) cell.Color {
 	switch color {
 	case "blue":
-		return ui.ColorBlue
+		return cell.ColorBlue
 	case "cyan":
-		return ui.ColorCyan
+		return cell.ColorCyan
 	case "green":
-		return ui.ColorGreen
+		return cell.ColorGreen
 	case "magenta":
-		return ui.ColorMagenta
+		return cell.ColorMagenta
 	case "red":
-		return ui.ColorRed
+		return cell.ColorRed
 	case "white":
-		return ui.ColorWhite
+		return cell.ColorWhite
 	case "yellow":
-		return ui.ColorYellow
+		return cell.ColorYellow
 	default:
-		return ui.ColorWhite
+		return cell.ColorWhite
 	}
-}
-
-func getLabelValue(label string, labels map[string]string) string {
-	value, ok := labels[label]
-	if !ok {
-		var values []string
-		for key, value := range labels {
-			values = append(values, key+"="+value)
-			return strings.Join(values, ", ")
-		}
-	}
-
-	return value
 }
 
 func getStatValue(stat string, data []float64) float64 {

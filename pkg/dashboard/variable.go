@@ -20,7 +20,7 @@ func (v *Variable) SetClient(client datasource.Client) {
 }
 
 func (v *Variable) GetValues(variables map[string]string, start, end time.Time) ([]string, error) {
-	query, err := queryInterpolation(v.Query, variables)
+	query, err := datasource.QueryInterpolation(v.Query, variables)
 	if err != nil {
 		return nil, err
 	}
