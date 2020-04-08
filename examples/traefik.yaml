@@ -1,0 +1,77 @@
+name: Traefik
+variables:
+  - name: backend
+    datasource: prometheus
+    query: traefik_backend_requests_total
+    label: backend
+    all: true
+rows:
+  - height: 25
+    graphs:
+      - width: 16
+        datasource: prometheus
+        type: singlestat
+        title: Requests [5m]
+        queries:
+          - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}"}[5m]))
+      - width: 17
+        datasource: prometheus
+        type: singlestat
+        title: Response Time
+        queries:
+          - query: sum(rate(traefik_backend_request_duration_seconds_sum{backend=~"{{.backend}}"}[5m])) / sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}"}[5m]))
+        options:
+          unit: s
+      - width: 17
+        datasource: prometheus
+        type: singlestat
+        title: Error Rate
+        queries:
+          - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}", code=~"5.*"}[5m])) / sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}"}[5m])) * 100 or vector(0)
+        options:
+          unit: "%"
+      - width: 17
+        datasource: prometheus
+        type: singlestat
+        title: Server Errors
+        queries:
+          - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}", code=~"5.*"}[5m])) or vector(0)
+      - width: 17
+        datasource: prometheus
+        type: singlestat
+        title: Client Errors
+        queries:
+          - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}", code=~"4.*"}[5m])) or vector(0)
+      - width: 16
+        datasource: prometheus
+        type: singlestat
+        title: Backend Servers
+        queries:
+          - query: count(sum(traefik_backend_server_up{backend=~"{{.backend}}"}) by (pod))
+
+  - height: 75
+    graphs:
+      - width: 50
+        datasource: prometheus
+        type: linechart
+        title: Requests by backend
+        queries:
+          - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}"}[5m])) by (backend)
+            label: "{{.backend}}"
+        options:
+          legend: "bottom"
+      - width: 50
+        datasource: prometheus
+        type: linechart
+        title: Requests by code
+        queries:
+          - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}", code=~"2.*"}[5m]))
+            label: "2xx"
+          - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}", code=~"3.*"}[5m]))
+            label: "3xx"
+          - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}", code=~"4.*"}[5m]))
+            label: "4xx"
+          - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}", code=~"5.*"}[5m]))
+            label: "5xx"
+        options:
+          legend: "bottom"
