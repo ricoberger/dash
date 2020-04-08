@@ -91,6 +91,8 @@ datasource: <string>
 query: <string>
 # Label which should be used to for the values of the variable.
 label: <string>
+# Add an include all option to the list of variable values.
+all: <bool>
 ```
 
 #### Row

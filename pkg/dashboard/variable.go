@@ -13,6 +13,7 @@ type Variable struct {
 	Datasource string `yaml:"datasource"`
 	Query      string `yaml:"query"`
 	Label      string `yaml:"label"`
+	All        bool   `yaml:"all"`
 }
 
 func (v *Variable) SetClient(client datasource.Client) {
@@ -25,5 +26,14 @@ func (v *Variable) GetValues(variables map[string]string, start, end time.Time) 
 		return nil, err
 	}
 
-	return v.client.GetVariableValues(query, v.Label, start, end)
+	values, err := v.client.GetVariableValues(query, v.Label, start, end)
+	if err != nil {
+		return nil, err
+	}
+
+	if v.All {
+		return append([]string{".*"}, values...), nil
+	}
+
+	return values, nil
 }
