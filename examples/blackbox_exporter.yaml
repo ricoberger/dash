@@ -1,0 +1,73 @@
+name: Blackbox Exporter
+variables:
+  - name: target
+    datasource: prometheus
+    query: probe_success
+    label: target
+rows:
+  - height: 15
+    graphs:
+      - width: 15
+        datasource: prometheus
+        type: singlestat
+        title: Status
+        queries:
+          - query: probe_success{target=~"{{.target}}"}
+        options:
+          thresholds: [0.5]
+          colors: ["red", "green"]
+      - width: 85
+        datasource: prometheus
+        type: linechart
+        title: Status
+        queries:
+          - query: probe_success{target=~"{{.target}}"}
+            label: "{{.target}}"
+
+  - height: 15
+    graphs:
+      - width: 33
+        datasource: prometheus
+        type: singlestat
+        title: SSL
+        queries:
+          - query: probe_http_ssl{target=~"{{.target}}"}
+        options:
+          thresholds: [0.5]
+          colors: ["red", "green"]
+      - width: 34
+        datasource: prometheus
+        type: singlestat
+        title: SSL Cert Expiry
+        queries:
+          - query: (probe_ssl_earliest_cert_expiry{target=~"{{.target}}"} - time()) / 86400
+        options:
+          thresholds: [11, 31]
+          colors: ["red", "yellow", "green"]
+          unit: d
+      - width: 33
+        datasource: prometheus
+        type: singlestat
+        title: HTTP Status Code
+        queries:
+          - query: probe_http_status_code{target=~"{{.target}}"}
+        options:
+          thresholds: [200, 300]
+          colors: ["red", "green", "red"]
+
+  - height: 15
+    graphs:
+      - width: 50
+        datasource: prometheus
+        type: linechart
+        title: Average Probe Duration
+        queries:
+          - query: avg(probe_duration_seconds{target=~"{{.target}}"})
+            label: "{{.target}}"
+      - width: 50
+        datasource: prometheus
+        type: linechart
+        title: Average DNS Lookup
+        queries:
+          - query: avg(probe_dns_lookup_time_seconds{target=~"{{.target}}"})
+            label: "{{.target}}"
