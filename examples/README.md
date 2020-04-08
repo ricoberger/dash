@@ -8,6 +8,10 @@
 
 ![node_exporter](./assets/node_exporter.png)
 
+## patroni-exporter
+
+![patroni-exporter](./assets/patroni-exporter.png)
+
 ## Traefik
 
 ![Traefik](./assets/traefik.png)

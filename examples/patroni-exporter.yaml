@@ -1,0 +1,151 @@
+name: Patroni Exporter
+variables:
+  - name: namespace
+    datasource: prometheus
+    query: patroni_patroni_info
+    label: namespace
+  - name: instance
+    datasource: prometheus
+    query: patroni_patroni_info{namespace="{{.namespace}}"}
+    label: pod
+  - name: master
+    datasource: prometheus
+    query: patroni_patroni_info{namespace="{{.namespace}}", role="master"}
+    label: pod
+rows:
+  - height: 15
+    graphs:
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: PostgreSQL Version
+        queries:
+          - query: patroni_postgresql_info{pod="{{.instance}}"}
+            label: "{{.server_version}}"
+        options:
+          stats: ["name"]
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: PostgreSQL Pending Restart
+        queries:
+          - query: patroni_postgresql_pending_restart{pod="{{.instance}}"}
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Patroni Status
+        queries:
+          - query: patroni_patroni_info{pod="{{.instance}}"}
+            label: "{{.state}}"
+        options:
+          stats: ["name"]
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Patroni Role
+        queries:
+          - query: patroni_patroni_info{pod="{{.instance}}"}
+            label: "{{.role}}"
+        options:
+          stats: ["name"]
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Patroni Lock
+        queries:
+          - query: patroni_patroni_cluster_unlocked{pod="{{.instance}}"}
+            label: "{{.state}}"
+
+  - height: 15
+    graphs:
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Patroni Scope
+        queries:
+          - query: patroni_patroni_info{pod="{{.instance}}"}
+            label: "{{.scope}}"
+        options:
+          stats: ["name"]
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Patroni Paused
+        queries:
+          - query: patroni_patroni_pause{pod="{{.instance}}"}
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Patroni Timeline
+        queries:
+          - query: patroni_postgresql_timeline{pod="{{.instance}}"}
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Patroni Version
+        queries:
+          - query: patroni_patroni_info{pod="{{.instance}}"}
+            label: "{{.version}}"
+        options:
+          stats: ["name"]
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Replication Usename
+        queries:
+          - query: patroni_replication_info{application_name="{{.instance}}"}
+            label: "{{.usename}}"
+        options:
+          stats: ["name"]
+
+  - height: 15
+    graphs:
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Replication State
+        queries:
+          - query: patroni_replication_info{application_name="{{.instance}}"}
+            label: "{{.state}}"
+        options:
+          stats: ["name"]
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Replication Sync Priority
+        queries:
+          - query: patroni_replication_info{application_name="{{.instance}}"}
+            label: "{{.sync_priority}}"
+        options:
+          stats: ["name"]
+      - width: 20
+        datasource: prometheus
+        type: singlestat
+        title: Replication Sync State
+        queries:
+          - query: patroni_replication_info{application_name="{{.instance}}"}
+            label: "{{.sync_state}}"
+        options:
+          stats: ["name"]
+      - width: 40
+        datasource: prometheus
+        type: singlestat
+        title: XLOG - Last Replay
+        queries:
+          - query: patroni_xlog_replayed_timestamp{pod="{{.instance}}"}
+
+  - height: 30
+    graphs:
+      - width: 99
+        datasource: prometheus
+        type: linechart
+        title: XLOG
+        queries:
+          - query: min(patroni_xlog_location{pod=~"{{.master}}"}) by (pod)
+            label: "Master - {{.pod}}"
+          - query: min(patroni_xlog_received_location{pod=~"{{.instance}}"}) by (pod)
+            label: "Received - {{.pod}}"
+          - query: min(patroni_xlog_replayed_location{pod=~"{{.instance}}"}) by (pod)
+            label: "Replayed - {{.pod}}"
+        options:
+          legend: bottom
