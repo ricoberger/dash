@@ -155,9 +155,9 @@ rows:
         title: Network Traffic Basic
         queries:
           - query: irate(node_network_transmit_bytes_total{instance=~"{{.instance}}"}[5m])*8
-            label: "recv {{.device}}"
-          - query: irate(node_network_receive_bytes_total{instance=~"{{.instance}}"}[5m])*8
             label: "trans {{.device}}"
+          - query: irate(node_network_receive_bytes_total{instance=~"{{.instance}}"}[5m])*8
+            label: "recv {{.device}}"
         options:
           legend: "right"
           unit: bits/sec

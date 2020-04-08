@@ -224,10 +224,6 @@ func donutPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element, err
 }
 
 func sparklinePanel(graph dashboard.Graph, data *datasource.Data) (grid.Element, error) {
-	if len(graph.Options.Stats) == 0 {
-		graph.Options.Stats = []string{"current"}
-	}
-
 	var values []int
 	var color cell.Color
 	var label string
