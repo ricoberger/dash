@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/ricoberger/dash/tree/0.2.0) (2020-04-08)
+
+[Full Changelog](https://github.com/ricoberger/dash/compare/0.1.0...0.2.0)
+
+**Breaking changes:**
+
+- Switch to termdash [\#1](https://github.com/ricoberger/dash/pull/1) ([ricoberger](https://github.com/ricoberger))
+
 ## [0.1.0](https://github.com/ricoberger/dash/tree/0.1.0) (2020-03-29)
 
 [Full Changelog](https://github.com/ricoberger/dash/compare/0f7b7b40131755b29d1972d66bac2a82adcb3659...0.1.0)
