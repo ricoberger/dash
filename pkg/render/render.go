@@ -71,10 +71,12 @@ func Run(dashboards []dashboard.Dashboard, initialInterval, initialRefresh strin
 		for {
 			select {
 			case <-ticker.C:
-				fLog.Debugf("refresh was triggered")
-				statusbar.Update(t.Size().X)
-				gridOpts = widget.GridLayout(storage)
-				c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(gridOpts...), container.SplitFixed(1)))
+				if !modalActive {
+					fLog.Debugf("refresh was triggered")
+					storage.RefreshInterval()
+					gridOpts = widget.GridLayout(storage)
+					c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(gridOpts...), container.SplitFixed(1)))
+				}
 			case <-ctx.Done():
 				return
 			}
@@ -127,6 +129,8 @@ func Run(dashboards []dashboard.Dashboard, initialInterval, initialRefresh strin
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
 		case keyboard.KeyEsc:
 			modalActive = false
+			storage.RefreshInterval()
+			gridOpts = widget.GridLayout(storage)
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(gridOpts...), container.SplitFixed(1)))
 		}
 
