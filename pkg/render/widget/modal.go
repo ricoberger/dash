@@ -52,37 +52,39 @@ func NewModal(storage *utils.Storage) (*Modal, error) {
 	}, nil
 }
 
-func (m *Modal) show() bool {
+func (m *Modal) show(updateRows bool) bool {
 	m.Reset()
 
-	if m.options.Type == ModalTypeDashboard {
-		for index, dashboard := range m.storage.Dashboards {
-			m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, dashboard.Name))
-		}
-	} else if m.options.Type == ModalTypeVariable {
-		if m.options.VariableIndex >= len(m.storage.Dashboard().Variables) {
+	if updateRows {
+		if m.options.Type == ModalTypeDashboard {
+			for index, dashboard := range m.storage.Dashboards {
+				m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, dashboard.Name))
+			}
+		} else if m.options.Type == ModalTypeVariable {
+			if m.options.VariableIndex >= len(m.storage.Dashboard().Variables) {
+				return false
+			}
+
+			variable := m.storage.Dashboard().Variables[m.options.VariableIndex]
+			values, err := variable.GetValues(m.storage.VariableValues, m.storage.Interval.Start, m.storage.Interval.End)
+			if err != nil {
+				return false
+			}
+
+			for index, value := range values {
+				m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, value))
+			}
+		} else if m.options.Type == ModalTypeInterval {
+			for index, interval := range intervals {
+				m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, interval))
+			}
+		} else if m.options.Type == ModalTypeRefresh {
+			for index, refresh := range refreshs {
+				m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, refresh))
+			}
+		} else {
 			return false
 		}
-
-		variable := m.storage.Dashboard().Variables[m.options.VariableIndex]
-		values, err := variable.GetValues(m.storage.VariableValues, m.storage.Interval.Start, m.storage.Interval.End)
-		if err != nil {
-			return false
-		}
-
-		for index, value := range values {
-			m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, value))
-		}
-	} else if m.options.Type == ModalTypeInterval {
-		for index, interval := range intervals {
-			m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, interval))
-		}
-	} else if m.options.Type == ModalTypeRefresh {
-		for index, refresh := range refreshs {
-			m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, refresh))
-		}
-	} else {
-		return false
 	}
 
 	if m.index == "" {
@@ -104,13 +106,12 @@ func (m *Modal) Show(options *ModalOptions) bool {
 	m.options = options
 	m.rows = nil
 	m.index = ""
-	return m.show()
+	return m.show(true)
 }
 
 func (m *Modal) SelectIndex(index string) bool {
-	m.rows = nil
 	m.index = m.index + index
-	return m.show()
+	return m.show(false)
 }
 
 func (m *Modal) Select() (ModalType, error) {
