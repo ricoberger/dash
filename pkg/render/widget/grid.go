@@ -119,7 +119,7 @@ func singlestatPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element
 	var color cell.Color
 
 	if len(data.Series) == 0 {
-		value = "N/A"
+		value = "NaN"
 	} else {
 		if graph.Options.Stats[0] == "name" {
 			value = data.Series[0].Label
@@ -137,6 +137,10 @@ func singlestatPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element
 
 			value = strconv.FormatFloat(floatValue, 'f', graph.Options.Decimals, 64)
 		}
+	}
+
+	if mapping, ok := graph.Options.Mappings[value]; ok {
+		value = mapping
 	}
 
 	var chunks []*segmentdisplay.TextChunk

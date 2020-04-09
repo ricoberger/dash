@@ -23,12 +23,13 @@ type Query struct {
 }
 
 type Options struct {
-	Unit       string    `yaml:"unit"`
-	Stats      []string  `yaml:"stats"`
-	Decimals   int       `yaml:"decimals"`
-	Thresholds []float64 `yaml:"thresholds"`
-	Colors     []string  `yaml:"colors"`
-	Legend     string    `yaml:"legend"`
+	Unit       string            `yaml:"unit"`
+	Stats      []string          `yaml:"stats"`
+	Decimals   int               `yaml:"decimals"`
+	Thresholds []float64         `yaml:"thresholds"`
+	Colors     []string          `yaml:"colors"`
+	Legend     string            `yaml:"legend"`
+	Mappings   map[string]string `yaml:"mappings"`
 }
 
 func (g *Graph) SetClient(client datasource.Client) {

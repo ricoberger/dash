@@ -16,6 +16,9 @@ rows:
         options:
           thresholds: [0.5]
           colors: ["red", "green"]
+          mappings:
+            "0": "DOWN"
+            "1": "UP"
       - width: 85
         datasource: prometheus
         type: linechart
@@ -35,6 +38,9 @@ rows:
         options:
           thresholds: [0.5]
           colors: ["red", "green"]
+          mappings:
+            "0": "NO"
+            "1": "YES"
       - width: 34
         datasource: prometheus
         type: singlestat

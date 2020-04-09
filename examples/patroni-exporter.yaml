@@ -30,6 +30,10 @@ rows:
         title: PostgreSQL Pending Restart
         queries:
           - query: patroni_postgresql_pending_restart{pod="{{.instance}}"}
+        options:
+          mappings:
+            "0": "Not Pending"
+            "1": "Pending"
       - width: 20
         datasource: prometheus
         type: singlestat
@@ -55,6 +59,10 @@ rows:
         queries:
           - query: patroni_patroni_cluster_unlocked{pod="{{.instance}}"}
             label: "{{.state}}"
+        options:
+          mappings:
+            "0": "Unlocked"
+            "1": "Locked"
 
   - height: 15
     graphs:
@@ -73,6 +81,10 @@ rows:
         title: Patroni Paused
         queries:
           - query: patroni_patroni_pause{pod="{{.instance}}"}
+        options:
+          mappings:
+            "0": "Not Paused"
+            "1": "Paused"
       - width: 20
         datasource: prometheus
         type: singlestat
