@@ -137,6 +137,8 @@ options:
   thresholds: [ <float> ]
   # Colors for the metrics. The array length must be the length of thresholds + 1.
   colors: [ <string> ]
+  # Mappings allow you to overwrite the returned value for a "singlestat"
+  mappings <map[string]string>
 ```
 
 #### Query
