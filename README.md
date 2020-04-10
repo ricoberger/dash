@@ -74,6 +74,8 @@ You can take a look at the [examples folder](./examples) for some predefined das
 ```yaml
 # Name of the dashboard.
 name: <string>
+# Default datasource which should be used for the dashboard.
+defaultDatasource: <string>
 # Variable in the dashboard.
 variables: [ <variable> ]
 # Rows in the dashboard.
@@ -85,8 +87,6 @@ rows: [ <row> ]
 ```yaml
 # Name of the variable, which can be used in queries.
 name: <string>
-# Name of the datasource, must be defined in a datasource file.
-datasource: <string>
 # Query which is executed against the datasource.
 query: <string>
 # Label which should be used to for the values of the variable.
@@ -109,8 +109,6 @@ graphs: <graph>
 ```yaml
 # Width of the graph in the row.
 width: <int>
-# Name of the datasource, were the queries should run against.
-datasource: <string>
 # Visualization type. Must be "singlestat", "gauge", "donut", "sparkline" or "linechart".
 type: <string>
 # Title of the visualization.

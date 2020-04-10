@@ -1,14 +1,13 @@
 name: Blackbox Exporter
+defaultDatasource: prometheus
 variables:
   - name: target
-    datasource: prometheus
     query: probe_success
     label: target
 rows:
   - height: 15
     graphs:
       - width: 15
-        datasource: prometheus
         type: singlestat
         title: Status
         queries:
@@ -30,7 +29,6 @@ rows:
   - height: 15
     graphs:
       - width: 33
-        datasource: prometheus
         type: singlestat
         title: SSL
         queries:
@@ -42,7 +40,6 @@ rows:
             "0": "NO"
             "1": "YES"
       - width: 34
-        datasource: prometheus
         type: singlestat
         title: SSL Cert Expiry
         queries:
@@ -52,7 +49,6 @@ rows:
           colors: ["red", "yellow", "green"]
           unit: d
       - width: 33
-        datasource: prometheus
         type: singlestat
         title: HTTP Status Code
         queries:
@@ -64,14 +60,12 @@ rows:
   - height: 15
     graphs:
       - width: 50
-        datasource: prometheus
         type: linechart
         title: Average Probe Duration
         queries:
           - query: avg(probe_duration_seconds{target=~"{{.target}}"})
             label: "{{.target}}"
       - width: 50
-        datasource: prometheus
         type: linechart
         title: Average DNS Lookup
         queries:
