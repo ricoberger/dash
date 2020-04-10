@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ricoberger/dash/pkg/dashboard"
+	"github.com/ricoberger/dash/pkg/datasource"
 	fLog "github.com/ricoberger/dash/pkg/log"
 )
 
@@ -18,16 +19,18 @@ type Interval struct {
 }
 
 type Storage struct {
-	Dashboards      []dashboard.Dashboard
-	ActiveDashboard int
-	Interval        Interval
-	Refresh         string
-	VariableValues  map[string]string
+	Datasources      map[string]datasource.Client
+	Dashboards       []dashboard.Dashboard
+	ActiveDatasource string
+	ActiveDashboard  int
+	Interval         Interval
+	Refresh          string
+	VariableValues   map[string]string
 }
 
 func (s *Storage) loadVariables() error {
 	for _, variable := range s.Dashboards[s.ActiveDashboard].Variables {
-		values, err := variable.GetValues(s.VariableValues, s.Interval.Start, s.Interval.End)
+		values, err := variable.GetValues(s.Datasource(), s.VariableValues, s.Interval.Start, s.Interval.End)
 		if err != nil {
 			return err
 		}
@@ -49,8 +52,19 @@ func (s *Storage) loadVariables() error {
 	return nil
 }
 
+func (s *Storage) Datasource() datasource.Client {
+	return s.Datasources[s.ActiveDatasource]
+}
+
 func (s *Storage) Dashboard() dashboard.Dashboard {
 	return s.Dashboards[s.ActiveDashboard]
+}
+
+func (s *Storage) ChangeDatasource(active string) error {
+	fLog.Debugf("change datasource to %s", active)
+	s.ActiveDatasource = active
+	s.VariableValues = make(map[string]string)
+	return s.loadVariables()
 }
 
 func (s *Storage) ChangeDashboard(active int) error {
@@ -125,12 +139,24 @@ func (s *Storage) RefreshInterval() {
 	s.Interval.End = end
 }
 
-func NewStorage(dashboards []dashboard.Dashboard, initialInterval, initialRefresh string) (*Storage, error) {
+func NewStorage(datasources map[string]datasource.Client, dashboards []dashboard.Dashboard, initialInterval, initialRefresh string) (*Storage, error) {
 	start, end := GetStartAndEndTime(initialInterval)
 
+	var initialActiveDatasource string
+	if _, ok := datasources[dashboards[initialActiveDashboard].DefaultDatasource]; ok {
+		initialActiveDatasource = dashboards[initialActiveDashboard].DefaultDatasource
+	} else {
+		for key := range datasources {
+			initialActiveDatasource = key
+			break
+		}
+	}
+
 	s := &Storage{
-		Dashboards:      dashboards,
-		ActiveDashboard: initialActiveDashboard,
+		Datasources:      datasources,
+		Dashboards:       dashboards,
+		ActiveDatasource: initialActiveDatasource,
+		ActiveDashboard:  initialActiveDashboard,
 		Interval: Interval{
 			Interval: initialInterval,
 			Start:    start,

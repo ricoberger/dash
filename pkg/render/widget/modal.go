@@ -13,10 +13,11 @@ import (
 type ModalType string
 
 const (
-	ModalTypeDashboard ModalType = "Dashboard"
-	ModalTypeVariable  ModalType = "Variable"
-	ModalTypeInterval  ModalType = "Interval"
-	ModalTypeRefresh   ModalType = "Refresh"
+	ModalTypeDashboard  ModalType = "Dashboard"
+	ModalTypeDatasource ModalType = "Datasource"
+	ModalTypeVariable   ModalType = "Variable"
+	ModalTypeInterval   ModalType = "Interval"
+	ModalTypeRefresh    ModalType = "Refresh"
 )
 
 var intervals = []string{"5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h", "2d", "7d", "30d"}
@@ -56,7 +57,13 @@ func (m *Modal) show(updateRows bool) bool {
 	m.Reset()
 
 	if updateRows {
-		if m.options.Type == ModalTypeDashboard {
+		if m.options.Type == ModalTypeDatasource {
+			var index int
+			for key := range m.storage.Datasources {
+				m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, key))
+				index = index + 1
+			}
+		} else if m.options.Type == ModalTypeDashboard {
 			for index, dashboard := range m.storage.Dashboards {
 				m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, dashboard.Name))
 			}
@@ -66,7 +73,7 @@ func (m *Modal) show(updateRows bool) bool {
 			}
 
 			variable := m.storage.Dashboard().Variables[m.options.VariableIndex]
-			values, err := variable.GetValues(m.storage.VariableValues, m.storage.Interval.Start, m.storage.Interval.End)
+			values, err := variable.GetValues(m.storage.Datasource(), m.storage.VariableValues, m.storage.Interval.Start, m.storage.Interval.End)
 			if err != nil {
 				return false
 			}
@@ -120,7 +127,13 @@ func (m *Modal) Select() (ModalType, error) {
 		return m.options.Type, err
 	}
 
-	if m.options.Type == ModalTypeDashboard {
+	if m.options.Type == ModalTypeDatasource {
+		split := strings.Index(m.rows[index], ":")
+		err := m.storage.ChangeDatasource(m.rows[index][split+2:])
+		if err != nil {
+			return m.options.Type, err
+		}
+	} else if m.options.Type == ModalTypeDashboard {
 		err := m.storage.ChangeDashboard(index)
 		if err != nil {
 			return m.options.Type, err

@@ -3,6 +3,7 @@ package render
 import (
 	"context"
 	"errors"
+	"github.com/ricoberger/dash/pkg/datasource"
 	"strconv"
 	"time"
 
@@ -22,7 +23,7 @@ var (
 	ErrNoDashboards = errors.New("no dashboards were provided")
 )
 
-func Run(dashboards []dashboard.Dashboard, initialInterval, initialRefresh string) error {
+func Run(datasources map[string]datasource.Client, dashboards []dashboard.Dashboard, initialInterval, initialRefresh string) error {
 	// Check if there was at least one dashboard provided. This is required for the storage implementation, because we
 	// choose the first dashboard as the initial one.
 	// When the check succeeded we create the storage, which holds the current state of dash.
@@ -30,7 +31,7 @@ func Run(dashboards []dashboard.Dashboard, initialInterval, initialRefresh strin
 		return ErrNoDashboards
 	}
 
-	storage, err := utils.NewStorage(dashboards, initialInterval, initialRefresh)
+	storage, err := utils.NewStorage(datasources, dashboards, initialInterval, initialRefresh)
 	if err != nil {
 		return err
 	}
@@ -92,7 +93,9 @@ func Run(dashboards []dashboard.Dashboard, initialInterval, initialRefresh strin
 			if modalActive {
 				modalType, err := modal.Select()
 				if err == nil {
-					if modalType == widget.ModalTypeDashboard {
+					if modalType == widget.ModalTypeDatasource {
+						storage.RefreshInterval()
+					} else if modalType == widget.ModalTypeDashboard {
 						storage.RefreshInterval()
 					} else if modalType == widget.ModalTypeVariable {
 						storage.RefreshInterval()
@@ -110,6 +113,9 @@ func Run(dashboards []dashboard.Dashboard, initialInterval, initialRefresh strin
 			}
 		case 'd':
 			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeDashboard, VariableIndex: 0})
+			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
+		case 's':
+			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeDatasource, VariableIndex: 0})
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			if modalActive {

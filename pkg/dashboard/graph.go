@@ -7,8 +7,6 @@ import (
 )
 
 type Graph struct {
-	client datasource.Client `yaml:"-"`
-
 	Width      int     `yaml:"width"`
 	Datasource string  `yaml:"datasource"`
 	Type       string  `yaml:"type"`
@@ -32,11 +30,7 @@ type Options struct {
 	Mappings   map[string]string `yaml:"mappings"`
 }
 
-func (g *Graph) SetClient(client datasource.Client) {
-	g.client = client
-}
-
-func (g *Graph) GetData(variables map[string]string, start, end time.Time) (*datasource.Data, error) {
+func (g *Graph) GetData(ds datasource.Client, variables map[string]string, start, end time.Time) (*datasource.Data, error) {
 	var queries []string
 	var labels []string
 
@@ -50,5 +44,5 @@ func (g *Graph) GetData(variables map[string]string, start, end time.Time) (*dat
 		labels = append(labels, query.Label)
 	}
 
-	return g.client.GetData(queries, labels, start, end)
+	return ds.GetData(queries, labels, start, end)
 }
