@@ -3,11 +3,11 @@ package render
 import (
 	"context"
 	"errors"
-	"github.com/ricoberger/dash/pkg/datasource"
 	"strconv"
 	"time"
 
 	"github.com/ricoberger/dash/pkg/dashboard"
+	"github.com/ricoberger/dash/pkg/datasource"
 	fLog "github.com/ricoberger/dash/pkg/log"
 	"github.com/ricoberger/dash/pkg/render/utils"
 	"github.com/ricoberger/dash/pkg/render/widget"

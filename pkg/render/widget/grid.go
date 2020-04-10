@@ -2,14 +2,15 @@ package widget
 
 import (
 	"fmt"
-	"github.com/ricoberger/dash/pkg/dashboard"
-	"github.com/ricoberger/dash/pkg/datasource"
-	fLog "github.com/ricoberger/dash/pkg/log"
-	"github.com/ricoberger/dash/pkg/render/utils"
 	"log"
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/ricoberger/dash/pkg/dashboard"
+	"github.com/ricoberger/dash/pkg/datasource"
+	fLog "github.com/ricoberger/dash/pkg/log"
+	"github.com/ricoberger/dash/pkg/render/utils"
 
 	"github.com/mum4k/termdash/align"
 	"github.com/mum4k/termdash/cell"
