@@ -1,20 +1,18 @@
 name: Node Exporter
+defaultDatasource: prometheus
 variables:
   - name: instance
-    datasource: prometheus
     query: node_uname_info
     label: instance
 rows:
   - height: 10
     graphs:
       - width: 25
-        datasource: prometheus
         type: singlestat
         title: CPU Cores
         queries:
           - query: count(count(node_cpu_seconds_total{instance=~"{{.instance}}"}) by (cpu))
       - width: 25
-        datasource: prometheus
         type: singlestat
         title: RAM Total
         queries:
@@ -22,7 +20,6 @@ rows:
         options:
           unit: GB
       - width: 25
-        datasource: prometheus
         type: singlestat
         title: SWAP Total
         queries:
@@ -30,7 +27,6 @@ rows:
         options:
           unit: GB
       - width: 25
-        datasource: prometheus
         type: singlestat
         title: Root FS Total
         queries:
@@ -41,7 +37,6 @@ rows:
   - height: 10
     graphs:
       - width: 25
-        datasource: prometheus
         type: gauge
         title: CPU Busy
         queries:
@@ -50,7 +45,6 @@ rows:
           thresholds: [85,95]
           colors: ["green", "yellow", "red"]
       - width: 25
-        datasource: prometheus
         type: gauge
         title: RAM Used
         queries:
@@ -59,7 +53,6 @@ rows:
           thresholds: [80,90]
           colors: ["green", "yellow", "red"]
       - width: 25
-        datasource: prometheus
         type: gauge
         title: SWAP Used
         queries:
@@ -68,7 +61,6 @@ rows:
           thresholds: [80,90]
           colors: ["green", "yellow", "red"]
       - width: 25
-        datasource: prometheus
         type: gauge
         title: Root FS Used
         queries:
@@ -80,7 +72,6 @@ rows:
   - height: 10
     graphs:
       - width: 33
-        datasource: prometheus
         type: donut
         title: Sys Load (5m avg)
         queries:
@@ -89,7 +80,6 @@ rows:
           thresholds: [85,95]
           colors: ["green", "yellow", "red"]
       - width: 34
-        datasource: prometheus
         type: donut
         title: Sys Load (5m avg)
         queries:
@@ -98,7 +88,6 @@ rows:
           thresholds: [85,95]
           colors: ["green", "yellow", "red"]
       - width: 33
-        datasource: prometheus
         type: donut
         title: Sys Load (15m avg)
         queries:
@@ -110,7 +99,6 @@ rows:
   - height: 35
     graphs:
       - width: 50
-        datasource: prometheus
         type: linechart
         title: CPU Basic
         queries:
@@ -129,7 +117,6 @@ rows:
         options:
           legend: "bottom"
       - width: 50
-        datasource: prometheus
         type: linechart
         title: Memory Used Basic
         queries:
@@ -150,7 +137,6 @@ rows:
   - height: 35
     graphs:
       - width: 50
-        datasource: prometheus
         type: linechart
         title: Network Traffic Basic
         queries:
@@ -162,7 +148,6 @@ rows:
           legend: "right"
           unit: bits/sec
       - width: 50
-        datasource: prometheus
         type: linechart
         title: Disk Space Used Basic
         queries:

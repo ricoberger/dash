@@ -1,7 +1,7 @@
 name: Traefik
+defaultDatasource: prometheus
 variables:
   - name: backend
-    datasource: prometheus
     query: traefik_backend_requests_total
     label: backend
     all: true
@@ -9,13 +9,11 @@ rows:
   - height: 25
     graphs:
       - width: 16
-        datasource: prometheus
         type: singlestat
         title: Requests [5m]
         queries:
           - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}"}[5m]))
       - width: 17
-        datasource: prometheus
         type: singlestat
         title: Response Time
         queries:
@@ -23,7 +21,6 @@ rows:
         options:
           unit: s
       - width: 17
-        datasource: prometheus
         type: singlestat
         title: Error Rate
         queries:
@@ -31,19 +28,16 @@ rows:
         options:
           unit: "%"
       - width: 17
-        datasource: prometheus
         type: singlestat
         title: Server Errors
         queries:
           - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}", code=~"5.*"}[5m])) or vector(0)
       - width: 17
-        datasource: prometheus
         type: singlestat
         title: Client Errors
         queries:
           - query: sum(rate(traefik_backend_requests_total{backend=~"{{.backend}}", code=~"4.*"}[5m])) or vector(0)
       - width: 16
-        datasource: prometheus
         type: singlestat
         title: Backend Servers
         queries:
@@ -52,7 +46,6 @@ rows:
   - height: 75
     graphs:
       - width: 50
-        datasource: prometheus
         type: linechart
         title: Requests by backend
         queries:
@@ -61,7 +54,6 @@ rows:
         options:
           legend: "bottom"
       - width: 50
-        datasource: prometheus
         type: linechart
         title: Requests by code
         queries:

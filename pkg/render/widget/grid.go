@@ -2,14 +2,15 @@ package widget
 
 import (
 	"fmt"
-	"github.com/ricoberger/dash/pkg/dashboard"
-	"github.com/ricoberger/dash/pkg/datasource"
-	fLog "github.com/ricoberger/dash/pkg/log"
-	"github.com/ricoberger/dash/pkg/render/utils"
 	"log"
 	"math"
 	"strconv"
 	"strings"
+
+	"github.com/ricoberger/dash/pkg/dashboard"
+	"github.com/ricoberger/dash/pkg/datasource"
+	fLog "github.com/ricoberger/dash/pkg/log"
+	"github.com/ricoberger/dash/pkg/render/utils"
 
 	"github.com/mum4k/termdash/align"
 	"github.com/mum4k/termdash/cell"
@@ -36,7 +37,7 @@ func GridLayout(storage *utils.Storage) []container.Option {
 			// var component widgetapi.Widget
 			var component grid.Element
 
-			data, err := graph.GetData(storage.VariableValues, storage.Interval.Start, storage.Interval.End)
+			data, err := graph.GetData(storage.Datasource(), storage.VariableValues, storage.Interval.Start, storage.Interval.End)
 			if err != nil {
 				component = renderError(graph, fmt.Sprintf("Could not load data: %s", err.Error()))
 			} else {
@@ -72,14 +73,6 @@ func GridLayout(storage *utils.Storage) []container.Option {
 			}
 
 			cols = append(cols, grid.ColWidthPerc(graph.Width, component))
-
-			/*cols = append(cols, grid.ColWidthPerc(graph.Width, grid.Widget(
-				component,
-				container.Border(linestyle.Light),
-				container.BorderTitle(graph.Title),
-				container.AlignHorizontal(align.HorizontalCenter),
-				container.AlignVertical(align.VerticalMiddle),
-			)))*/
 		}
 
 		rows = append(rows, grid.RowHeightPerc(row.Height, cols...))

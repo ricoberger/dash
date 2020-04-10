@@ -38,10 +38,11 @@ func (s *Statusbar) Update(termWidth int) {
 	}
 
 	dashboard := fmt.Sprintf(" [D]ashboard: %s", s.storage.Dashboard().Name)
+	datasource := fmt.Sprintf(" [S]ource: %s", s.storage.ActiveDatasource)
 	variables := fmt.Sprintf(" [V]ariables: %s", strings.Join(prefixedValues, ", "))
 	interval := fmt.Sprintf(" [I]nterval: %s", s.storage.Interval.Interval)
 	refresh := fmt.Sprintf(" [R]efresh: %s ", s.storage.Refresh)
-	spaces := strings.Repeat(" ", termWidth-len(dashboard)-len(variables)-len(interval)-len(refresh))
+	spaces := strings.Repeat(" ", termWidth-len(dashboard)-len(datasource)-len(variables)-len(interval)-len(refresh))
 
-	s.Write(dashboard+variables+spaces+interval+refresh, text.WriteCellOpts(cell.BgColor(cell.ColorBlue), cell.FgColor(cell.ColorBlack)))
+	s.Write(dashboard+datasource+variables+spaces+interval+refresh, text.WriteCellOpts(cell.BgColor(cell.ColorBlue), cell.FgColor(cell.ColorBlack)))
 }

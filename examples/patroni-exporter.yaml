@@ -1,22 +1,19 @@
 name: Patroni Exporter
+defaultDatasource: prometheus
 variables:
   - name: namespace
-    datasource: prometheus
     query: patroni_patroni_info
     label: namespace
   - name: instance
-    datasource: prometheus
     query: patroni_patroni_info{namespace="{{.namespace}}"}
     label: pod
   - name: master
-    datasource: prometheus
     query: patroni_patroni_info{namespace="{{.namespace}}", role="master"}
     label: pod
 rows:
   - height: 15
     graphs:
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: PostgreSQL Version
         queries:
@@ -25,7 +22,6 @@ rows:
         options:
           stats: ["name"]
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: PostgreSQL Pending Restart
         queries:
@@ -35,7 +31,6 @@ rows:
             "0": "Not Pending"
             "1": "Pending"
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Patroni Status
         queries:
@@ -44,7 +39,6 @@ rows:
         options:
           stats: ["name"]
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Patroni Role
         queries:
@@ -53,7 +47,6 @@ rows:
         options:
           stats: ["name"]
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Patroni Lock
         queries:
@@ -67,7 +60,6 @@ rows:
   - height: 15
     graphs:
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Patroni Scope
         queries:
@@ -76,7 +68,6 @@ rows:
         options:
           stats: ["name"]
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Patroni Paused
         queries:
@@ -86,13 +77,11 @@ rows:
             "0": "Not Paused"
             "1": "Paused"
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Patroni Timeline
         queries:
           - query: patroni_postgresql_timeline{pod="{{.instance}}"}
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Patroni Version
         queries:
@@ -101,7 +90,6 @@ rows:
         options:
           stats: ["name"]
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Replication Usename
         queries:
@@ -113,7 +101,6 @@ rows:
   - height: 15
     graphs:
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Replication State
         queries:
@@ -122,7 +109,6 @@ rows:
         options:
           stats: ["name"]
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Replication Sync Priority
         queries:
@@ -131,7 +117,6 @@ rows:
         options:
           stats: ["name"]
       - width: 20
-        datasource: prometheus
         type: singlestat
         title: Replication Sync State
         queries:
@@ -140,7 +125,6 @@ rows:
         options:
           stats: ["name"]
       - width: 40
-        datasource: prometheus
         type: singlestat
         title: XLOG - Last Replay
         queries:
@@ -149,7 +133,6 @@ rows:
   - height: 30
     graphs:
       - width: 99
-        datasource: prometheus
         type: linechart
         title: XLOG
         queries:

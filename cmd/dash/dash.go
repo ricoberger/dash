@@ -41,12 +41,12 @@ var rootCmd = &cobra.Command{
 			log.Fatalf("Could not load datasources: %v", err)
 		}
 
-		dashboards, err := dashboard.New(configDir, datasources)
+		dashboards, err := dashboard.New(configDir)
 		if err != nil {
 			log.Fatalf("Could not load dashboards: %v", err)
 		}
 
-		err = render.Run(dashboards, configInterval, configRefresh)
+		err = render.Run(datasources, dashboards, configInterval, configRefresh)
 		if err != nil {
 			log.Fatalf("Unexpected error: %v", err)
 		}
