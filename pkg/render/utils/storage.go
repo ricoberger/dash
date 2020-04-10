@@ -70,6 +70,16 @@ func (s *Storage) ChangeDatasource(active string) error {
 func (s *Storage) ChangeDashboard(active int) error {
 	fLog.Debugf("change dashboard index to %d", active)
 	s.ActiveDashboard = active
+
+	if _, ok := s.Datasources[s.Dashboards[active].DefaultDatasource]; ok {
+		s.ActiveDatasource = s.Dashboards[active].DefaultDatasource
+	} else {
+		for key := range s.Datasources {
+			s.ActiveDatasource = key
+			break
+		}
+	}
+
 	s.VariableValues = make(map[string]string)
 	return s.loadVariables()
 }
