@@ -122,13 +122,13 @@ rows:
         queries:
           - query: (node_memory_MemTotal_bytes{instance=~"{{.instance}}"} - node_memory_MemFree_bytes{instance=~"{{.instance}}"} - (node_memory_Cached_bytes{instance=~"{{.instance}}"} + node_memory_Buffers_bytes{instance=~"{{.instance}}"})) / 1024 / 1024 / 1024
             label: "RAM Total"
-          - query: node_memory_MemTotal_bytes{instance=~"{{.instance}}"} - node_memory_MemFree_bytes{instance=~"{{.instance}}"} - (node_memory_Cached_bytes{instance=~"{{.instance}}"} + node_memory_Buffers_bytes{instance=~"{{.instance}}"})
+          - query: (node_memory_MemTotal_bytes{instance=~"{{.instance}}"} - node_memory_MemFree_bytes{instance=~"{{.instance}}"} - (node_memory_Cached_bytes{instance=~"{{.instance}}"} + node_memory_Buffers_bytes{instance=~"{{.instance}}"})) / 1024 / 1024 / 1024
             label: "RAM Used"
-          - query: node_memory_Cached_bytes{instance=~"{{.instance}}"} + node_memory_Buffers_bytes{instance=~"{{.instance}}"}
+          - query: (node_memory_Cached_bytes{instance=~"{{.instance}}"} + node_memory_Buffers_bytes{instance=~"{{.instance}}"}) / 1024 / 1024 / 1024
             label: "RAM Cache + Buffer"
-          - query: node_memory_MemFree_bytes{instance=~"{{.instance}}"}
+          - query: node_memory_MemFree_bytes{instance=~"{{.instance}}"} / 1024 / 1024 / 1024
             label: "RAM Free"
-          - query: (node_memory_SwapTotal_bytes{instance=~"{{.instance}}"} - node_memory_SwapFree_bytes{instance=~"{{.instance}}"})
+          - query: ((node_memory_SwapTotal_bytes{instance=~"{{.instance}}"} - node_memory_SwapFree_bytes{instance=~"{{.instance}}"})) / 1024 / 1024 / 1024
             label: "SWAP Used"
         options:
           legend: "bottom"
