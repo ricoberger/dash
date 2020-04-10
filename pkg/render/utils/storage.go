@@ -73,11 +73,6 @@ func (s *Storage) ChangeDashboard(active int) error {
 
 	if _, ok := s.Datasources[s.Dashboards[active].DefaultDatasource]; ok {
 		s.ActiveDatasource = s.Dashboards[active].DefaultDatasource
-	} else {
-		for key := range s.Datasources {
-			s.ActiveDatasource = key
-			break
-		}
 	}
 
 	s.VariableValues = make(map[string]string)
