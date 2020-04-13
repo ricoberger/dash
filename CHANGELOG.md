@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.0](https://github.com/ricoberger/dash/tree/0.3.0) (2020-04-10)
+
+[Full Changelog](https://github.com/ricoberger/dash/compare/0.2.0...0.3.0)
+
+**Implemented enhancements:**
+
+- Dynamic Datasources [\#6](https://github.com/ricoberger/dash/pull/6) ([ricoberger](https://github.com/ricoberger))
+- Add mappings for single stats [\#3](https://github.com/ricoberger/dash/pull/3) ([ricoberger](https://github.com/ricoberger))
+- Fix and improve variable handling [\#2](https://github.com/ricoberger/dash/pull/2) ([ricoberger](https://github.com/ricoberger))
+
+**Fixed bugs:**
+
+- Fix dashboard refresh [\#5](https://github.com/ricoberger/dash/pull/5) ([ricoberger](https://github.com/ricoberger))
+
+**Merged pull requests:**
+
+- Improve statusbar and modal [\#4](https://github.com/ricoberger/dash/pull/4) ([ricoberger](https://github.com/ricoberger))
+
 ## [0.2.0](https://github.com/ricoberger/dash/tree/0.2.0) (2020-04-08)
 
 [Full Changelog](https://github.com/ricoberger/dash/compare/0.1.0...0.2.0)
