@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"math/rand"
 	"strconv"
 	"strings"
 
@@ -24,8 +25,6 @@ import (
 	"github.com/mum4k/termdash/widgets/sparkline"
 	"github.com/mum4k/termdash/widgets/text"
 )
-
-var colors = []cell.Color{cell.ColorBlue, cell.ColorCyan, cell.ColorGreen, cell.ColorMagenta, cell.ColorRed, cell.ColorWhite, cell.ColorYellow, cell.ColorWhite}
 
 func GridLayout(storage *utils.Storage) []container.Option {
 	var rows []grid.Element
@@ -280,25 +279,26 @@ func linechartPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element,
 			statsLegend = fmt.Sprintf("%s %s", strconv.FormatFloat(getStatValue("current", series.Points), 'f', graph.Options.Decimals, 64), graph.Options.Unit)
 		}
 
+		color := randomColor(index)
 		if graph.Options.Legend == "bottom" {
-			err = legend.Write(fmt.Sprintf("%s: %s   ", series.Label, statsLegend), text.WriteCellOpts(cell.FgColor(colors[index])))
+			err = legend.Write(fmt.Sprintf("%s: %s   ", series.Label, statsLegend), text.WriteCellOpts(cell.FgColor(color)))
 			if err != nil {
 				return nil, err
 			}
 		} else if graph.Options.Legend == "right" {
-			err = legend.Write(fmt.Sprintf("%s: %s\n", series.Label, statsLegend), text.WriteCellOpts(cell.FgColor(colors[index])))
+			err = legend.Write(fmt.Sprintf("%s: %s\n", series.Label, statsLegend), text.WriteCellOpts(cell.FgColor(color)))
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		if index == 0 {
-			err = lc.Series(series.Label, series.Points, linechart.SeriesCellOpts(cell.FgColor(colors[index])), linechart.SeriesXLabels(data.Timestamps))
+			err = lc.Series(series.Label, series.Points, linechart.SeriesCellOpts(cell.FgColor(color)), linechart.SeriesXLabels(data.Timestamps))
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			err = lc.Series(series.Label, series.Points, linechart.SeriesCellOpts(cell.FgColor(colors[index])))
+			err = lc.Series(series.Label, series.Points, linechart.SeriesCellOpts(cell.FgColor(color)))
 			if err != nil {
 				return nil, err
 			}
@@ -346,6 +346,16 @@ func getColor(color string) cell.Color {
 	default:
 		return cell.ColorWhite
 	}
+}
+
+func randomColor(index int) cell.Color {
+	var colors = []cell.Color{cell.ColorBlue, cell.ColorCyan, cell.ColorGreen, cell.ColorMagenta, cell.ColorRed, cell.ColorWhite, cell.ColorYellow}
+
+	if index < len(colors) {
+		return colors[index]
+	}
+
+	return cell.ColorNumber(rand.Intn(255-0) + 0)
 }
 
 func getStatValue(stat string, data []float64) float64 {
