@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -356,7 +357,7 @@ func tablePanel(graph dashboard.Graph, data *datasource.TableData) (grid.Element
 		var columns []string
 
 		for _, name := range names {
-			columns = append(columns, value[name])
+			columns = append(columns, formateInterface(value[name], graph.Options.Decimals))
 		}
 
 		table.Append(columns)
@@ -376,6 +377,18 @@ func tablePanel(graph dashboard.Graph, data *datasource.TableData) (grid.Element
 	}
 
 	return grid.Widget(txt, container.Border(linestyle.Light), container.BorderTitle(graph.Title), container.AlignHorizontal(align.HorizontalCenter), container.AlignVertical(align.VerticalMiddle)), nil
+}
+
+func formateInterface(value interface{}, decimals int) string {
+	switch i := value.(type) {
+	case float64:
+		return strconv.FormatFloat(i, 'f', decimals, 64)
+	case string:
+		return i
+	default:
+		fLog.Debugf("Could not formate value: %v, type: %v", i, reflect.TypeOf(i))
+		return fmt.Sprintf("%v", i)
+	}
 }
 
 func getColor(color string) cell.Color {

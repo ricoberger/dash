@@ -152,7 +152,7 @@ func (p *Prometheus) GetTableData(queries, labels []string) (*TableData, error) 
 	defer cancel()
 
 	var tableData TableData
-	tableData = make(map[string]map[string]string)
+	tableData = make(map[string]map[string]interface{})
 
 	now := time.Now()
 
@@ -178,14 +178,14 @@ func (p *Prometheus) GetTableData(queries, labels []string) (*TableData, error) 
 			joinValue := getLabel(labels[i], returnedLabels)
 			for key, value := range returnedLabels {
 				if _, ok := tableData[joinValue]; !ok {
-					tableData[joinValue] = make(map[string]string)
+					tableData[joinValue] = make(map[string]interface{})
 				}
 
 				if _, ok := tableData[joinValue][key]; !ok {
 					tableData[joinValue][key] = value
 				}
 
-				tableData[joinValue][fmt.Sprintf("value%d", i)] = d.Value.String()
+				tableData[joinValue][fmt.Sprintf("value_%d", i)] = float64(d.Value)
 			}
 		}
 	}

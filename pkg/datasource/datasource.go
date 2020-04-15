@@ -44,7 +44,7 @@ type Series struct {
 	Points []float64
 }
 
-type TableData map[string]map[string]string
+type TableData map[string]map[string]interface{}
 
 type Client interface {
 	GetVariableValues(query, label string, start, end time.Time) ([]string, error)
