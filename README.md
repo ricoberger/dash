@@ -25,7 +25,7 @@ VERSION=
 GOOS=$(go env GOOS)
 GOARCH=$(go env GOARCH)
 wget https://github.com/ricoberger/dash/releases/download/$VERSION/dash-$GOOS-$GOARCH
-sudo install -m 755 dash-$GOOS-$GOARCH /usr/local/bin/dash
+sudo install -m 755 dash-$GOOS-$GOARCH /usr/local/bin/dashboard
 ```
 
 ## Usage

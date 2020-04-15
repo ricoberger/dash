@@ -1,5 +1,6 @@
 # Builds and releases
 bin
 
-# Datasources and dashboards for testing
-.dash
+# Ignore examples folder for datasources and log file
+/examples/dash.log
+/examples/datasources
