@@ -103,20 +103,9 @@ func (p *Prometheus) GetData(queries, labels []string, start, end time.Time) (*D
 	var timestamps map[int]string
 	timestamps = make(map[int]string)
 
-	var step = 10 * time.Second
-	if p.options.MaxPoints != 0 {
-		step = time.Duration((end.Unix()-start.Unix())/p.options.MaxPoints) * time.Second
-	} else if p.options.Step != 0 {
-		step = time.Duration(p.options.Step) * time.Second
-	}
+	timeRange := getTimeRange(p.options, start, end)
 
 	for i, query := range queries {
-		timeRange := v1.Range{
-			Start: start,
-			End:   end,
-			Step:  step,
-		}
-
 		result, _, err := p.v1api.QueryRange(ctx, query, timeRange)
 		if err != nil {
 			return nil, err
@@ -156,6 +145,67 @@ func (p *Prometheus) GetData(queries, labels []string, start, end time.Time) (*D
 		Timestamps: timestamps,
 		Series:     series,
 	}, nil
+}
+
+func (p *Prometheus) GetTableData(queries, labels []string) (*TableData, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	var tableData TableData
+	tableData = make(map[string]map[string]interface{})
+
+	now := time.Now()
+
+	for i, query := range queries {
+		result, _, err := p.v1api.Query(ctx, query, now)
+		if err != nil {
+			return nil, err
+		}
+
+		data, ok := result.(model.Vector)
+		if !ok {
+			return nil, fmt.Errorf("unsupported result format: %s", result.Type().String())
+		}
+
+		for _, d := range data {
+			var returnedLabels map[string]string
+			returnedLabels = make(map[string]string)
+
+			for key, value := range d.Metric {
+				returnedLabels[string(key)] = string(value)
+			}
+
+			joinValue := getLabel(labels[i], returnedLabels)
+			for key, value := range returnedLabels {
+				if _, ok := tableData[joinValue]; !ok {
+					tableData[joinValue] = make(map[string]interface{})
+				}
+
+				if _, ok := tableData[joinValue][key]; !ok {
+					tableData[joinValue][key] = value
+				}
+
+				tableData[joinValue][fmt.Sprintf("value_%d", i)] = float64(d.Value)
+			}
+		}
+	}
+
+	return &tableData, nil
+}
+
+func getTimeRange(options Options, start, end time.Time) v1.Range {
+	var step = 10 * time.Second
+	if options.MaxPoints != 0 {
+		step = time.Duration((end.Unix()-start.Unix())/options.MaxPoints) * time.Second
+	} else if options.Step != 0 {
+		step = time.Duration(options.Step) * time.Second
+	}
+
+	return v1.Range{
+		Start: start,
+		End:   end,
+		Step:  step,
+	}
 }
 
 func getLabel(label string, labels map[string]string) string {

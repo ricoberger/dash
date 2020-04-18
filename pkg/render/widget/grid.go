@@ -5,6 +5,7 @@ import (
 	"log"
 	"math"
 	"math/rand"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/mum4k/termdash/widgets/segmentdisplay"
 	"github.com/mum4k/termdash/widgets/sparkline"
 	"github.com/mum4k/termdash/widgets/text"
+	"github.com/olekukonko/tablewriter"
 )
 
 func GridLayout(storage *utils.Storage) []container.Option {
@@ -33,40 +35,52 @@ func GridLayout(storage *utils.Storage) []container.Option {
 		var cols []grid.Element
 
 		for _, graph := range row.Graphs {
-			// var component widgetapi.Widget
 			var component grid.Element
 
-			data, err := graph.GetData(storage.Datasource(), storage.VariableValues, storage.Interval.Start, storage.Interval.End)
-			if err != nil {
-				component = renderError(graph, fmt.Sprintf("Could not load data: %s", err.Error()))
-			} else {
-				fLog.Debugf("render %d for %s", len(data.Series), graph.Title)
-
-				switch graph.Type {
-				case "singlestat":
-					component, err = singlestatPanel(graph, data)
+			if graph.Type == "table" {
+				data, err := graph.GetTableData(storage.Datasource(), storage.VariableValues)
+				if err != nil {
+					component = renderError(graph, fmt.Sprintf("Could not load data: %s", err.Error()))
+				} else {
+					fLog.Debugf("TableData: %v", data)
+					component, err = tablePanel(graph, data)
 					if err != nil {
 						component = renderError(graph, fmt.Sprintf("Could not render singlestat %s: %s", graph.Title, err.Error()))
 					}
-				case "gauge":
-					component, err = gaugePanel(graph, data)
-					if err != nil {
-						component = renderError(graph, fmt.Sprintf("Could not render gauge %s: %s", graph.Title, err.Error()))
-					}
-				case "donut":
-					component, err = donutPanel(graph, data)
-					if err != nil {
-						component = renderError(graph, fmt.Sprintf("Could not render donut %s: %s", graph.Title, err.Error()))
-					}
-				case "sparkline":
-					component, err = sparklinePanel(graph, data)
-					if err != nil {
-						component = renderError(graph, fmt.Sprintf("Could not render sparkline %s: %s", graph.Title, err.Error()))
-					}
-				case "linechart":
-					component, err = linechartPanel(graph, data)
-					if err != nil {
-						component = renderError(graph, fmt.Sprintf("Could not load render linechart %s: %s", graph.Title, err.Error()))
+				}
+			} else {
+				data, err := graph.GetData(storage.Datasource(), storage.VariableValues, storage.Interval.Start, storage.Interval.End)
+				if err != nil {
+					component = renderError(graph, fmt.Sprintf("Could not load data: %s", err.Error()))
+				} else {
+					fLog.Debugf("render %d for %s", len(data.Series), graph.Title)
+
+					switch graph.Type {
+					case "singlestat":
+						component, err = singlestatPanel(graph, data)
+						if err != nil {
+							component = renderError(graph, fmt.Sprintf("Could not render singlestat %s: %s", graph.Title, err.Error()))
+						}
+					case "gauge":
+						component, err = gaugePanel(graph, data)
+						if err != nil {
+							component = renderError(graph, fmt.Sprintf("Could not render gauge %s: %s", graph.Title, err.Error()))
+						}
+					case "donut":
+						component, err = donutPanel(graph, data)
+						if err != nil {
+							component = renderError(graph, fmt.Sprintf("Could not render donut %s: %s", graph.Title, err.Error()))
+						}
+					case "sparkline":
+						component, err = sparklinePanel(graph, data)
+						if err != nil {
+							component = renderError(graph, fmt.Sprintf("Could not render sparkline %s: %s", graph.Title, err.Error()))
+						}
+					case "linechart":
+						component, err = linechartPanel(graph, data)
+						if err != nil {
+							component = renderError(graph, fmt.Sprintf("Could not load render linechart %s: %s", graph.Title, err.Error()))
+						}
 					}
 				}
 			}
@@ -325,6 +339,56 @@ func linechartPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element,
 	element := grid.RowHeightPercWithOpts(99, opts, elements...)
 
 	return element, nil
+}
+
+func tablePanel(graph dashboard.Graph, data *datasource.TableData) (grid.Element, error) {
+	tableString := &strings.Builder{}
+	table := tablewriter.NewWriter(tableString)
+
+	var headers []string
+	var names []string
+
+	for _, column := range graph.Options.Columns {
+		headers = append(headers, column.Header)
+		names = append(names, column.Name)
+	}
+
+	for _, value := range *data {
+		var columns []string
+
+		for _, name := range names {
+			columns = append(columns, formateInterface(value[name], graph.Options.Decimals))
+		}
+
+		table.Append(columns)
+	}
+
+	table.SetHeader(headers)
+	table.Render()
+
+	txt, err := text.New()
+	if err != nil {
+		return nil, err
+	}
+
+	err = txt.Write(tableString.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return grid.Widget(txt, container.Border(linestyle.Light), container.BorderTitle(graph.Title), container.AlignHorizontal(align.HorizontalCenter), container.AlignVertical(align.VerticalMiddle)), nil
+}
+
+func formateInterface(value interface{}, decimals int) string {
+	switch i := value.(type) {
+	case float64:
+		return strconv.FormatFloat(i, 'f', decimals, 64)
+	case string:
+		return i
+	default:
+		fLog.Debugf("Could not formate value: %v, type: %v", i, reflect.TypeOf(i))
+		return fmt.Sprintf("%v", i)
+	}
 }
 
 func getColor(color string) cell.Color {

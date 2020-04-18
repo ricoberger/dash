@@ -28,6 +28,12 @@ type Options struct {
 	Colors     []string          `yaml:"colors"`
 	Legend     string            `yaml:"legend"`
 	Mappings   map[string]string `yaml:"mappings"`
+	Columns    []Column          `yaml:"columns"`
+}
+
+type Column struct {
+	Name   string `yaml:"name"`
+	Header string `yaml:"header"`
 }
 
 func (g *Graph) GetData(ds datasource.Client, variables map[string]string, start, end time.Time) (*datasource.Data, error) {
@@ -45,4 +51,21 @@ func (g *Graph) GetData(ds datasource.Client, variables map[string]string, start
 	}
 
 	return ds.GetData(queries, labels, start, end)
+}
+
+func (g *Graph) GetTableData(ds datasource.Client, variables map[string]string) (*datasource.TableData, error) {
+	var queries []string
+	var labels []string
+
+	for _, query := range g.Queries {
+		q, err := datasource.QueryInterpolation(query.Query, variables)
+		if err != nil {
+			return nil, err
+		}
+
+		queries = append(queries, q)
+		labels = append(labels, query.Label)
+	}
+
+	return ds.GetTableData(queries, labels)
 }
