@@ -1,0 +1,129 @@
+name: MongoDB ReplSet
+defaultDatasource: prometheus
+variables:
+  - name: cluster
+    query: mongodb_connections
+    label: cluster
+  - name: namespace
+    query: mongodb_connections{cluster="{{.cluster}}"}
+    label: namespace
+  - name: host
+    query: mongodb_connections{cluster="{{.cluster}}", namespace="{{.namespace}}"}
+    label: instance
+rows:
+  - height: 16
+    graphs:
+      - width: 20
+        type: singlestat
+        title: ReplSet State
+        queries:
+          - query: mongodb_mongod_replset_my_state{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}
+        options:
+          mappings:
+            "0": "STARTUP"
+            "1": "PRIMARY"
+            "2": "SECONDARY"
+            "3": "RECOVERING"
+            "5": "STARTUP2"
+            "6": "UNKNOWN"
+            "7": "ARBITER"
+            "8": "DOWN"
+            "9": "ROLLBACK"
+            "10": "REMOVED"
+      - width: 20
+        type: singlestat
+        title: ReplSet Members
+        queries:
+          - query: mongodb_mongod_replset_number_of_members{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}
+      - width: 20
+        type: singlestat
+        title: ReplSet Last Election
+        queries:
+          - query: (time() - mongodb_mongod_replset_member_election_date{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}) / 60 / 60 / 24
+        options:
+          unit: "d"
+      - width: 20
+        type: singlestat
+        title: ReplSet Lag
+        queries:
+          - query: (max(mongodb_mongod_replset_member_optime_date{state="PRIMARY", cluster="{{.cluster}}", namespace="{{.namespace}}"}) - min(mongodb_mongod_replset_member_optime_date{state="SECONDARY", cluster="{{.cluster}}", namespace="{{.namespace}}"} * on (name) group_left mongodb_mongod_replset_my_name{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"})) or vector(0)
+        options:
+          unit: "s"
+      - width: 20
+        type: singlestat
+        title: Storage Engine
+        queries:
+          - query: mongodb_mongod_storage_engine{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}
+            label: "{{.engine}}"
+        options:
+          stats: ["name"]
+
+  - height: 28
+    graphs:
+      - width: 50
+        type: linechart
+        title: Replication Operations
+        queries:
+          - query: rate(mongodb_op_counters_repl_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", type!~"(command|getmore|query)"}[5m]) or irate(mongodb_op_counters_repl_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", type!~"(command|getmore|query)"}[5m])
+            label: "{{.type}}"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+          unit: ops
+      - width: 50
+        type: linechart
+        title: Oplog Recovery Window
+        queries:
+          - query: (time()-mongodb_mongod_replset_oplog_tail_timestamp{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}) / 60 / 60
+            label: "Now to End"
+          - query: (mongodb_mongod_replset_oplog_head_timestamp{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"} - mongodb_mongod_replset_oplog_tail_timestamp{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}) / 60 / 60
+            label: "Oplog Range"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+          unit: h
+
+  - height: 28
+    graphs:
+      - width: 50
+        type: linechart
+        title: Replication Lag
+        queries:
+          - query: (max(mongodb_mongod_replset_member_optime_date{state="PRIMARY", cluster="{{.cluster}}", namespace="{{.namespace}}"}) - min(mongodb_mongod_replset_member_optime_date{state="SECONDARY", cluster="{{.cluster}}", namespace="{{.namespace}}"} * on (name) group_left mongodb_mongod_replset_my_name{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"})) or vector(0)
+            label: "Lag"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+          unit: s
+      - width: 50
+        type: linechart
+        title: Oplog Recovery Window
+        queries:
+          - query: max(changes(mongodb_mongod_replset_member_election_date{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]))
+            label: "Count"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+
+  - height: 28
+    graphs:
+      - width: 50
+        type: linechart
+        title: Member State Uptime
+        queries:
+          - query: (mongodb_mongod_replset_member_uptime{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"} * on (name) group_right(state) (max_over_time(mongodb_mongod_replset_my_name{cluster="{{.cluster}}", namespace="{{.namespace}}"}[5m]) or max_over_time(mongodb_mongod_replset_my_name{cluster="{{.cluster}}", namespace="{{.namespace}}"}[5m]))) / 60 / 60 / 24
+            label: "{{.instance}} - {{.state}}"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+          unit: d
+      - width: 50
+        type: linechart
+        title: Max Heartbeat Time
+        queries:
+          - query: time() - max(mongodb_mongod_replset_member_last_heartbeat{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}) by (name) * on (name) group_right mongodb_mongod_replset_my_name{cluster="{{.cluster}}", namespace="{{.namespace}}"}
+            label: "{{.instance}}"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+          unit: s
