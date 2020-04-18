@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/ricoberger/dash/tree/0.4.0) (2020-04-18)
+
+[Full Changelog](https://github.com/ricoberger/dash/compare/0.3.0...0.4.0)
+
+**Implemented enhancements:**
+
+- Add NGINX and MongoDB example [\#9](https://github.com/ricoberger/dash/pull/9) ([ricoberger](https://github.com/ricoberger))
+- Add table component [\#8](https://github.com/ricoberger/dash/pull/8) ([ricoberger](https://github.com/ricoberger))
+
+**Fixed bugs:**
+
+- Fix out of range error for colors [\#7](https://github.com/ricoberger/dash/pull/7) ([ricoberger](https://github.com/ricoberger))
+
 ## [0.3.0](https://github.com/ricoberger/dash/tree/0.3.0) (2020-04-10)
 
 [Full Changelog](https://github.com/ricoberger/dash/compare/0.2.0...0.3.0)
