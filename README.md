@@ -10,8 +10,8 @@ dash is a terminal dashboard solution inspired by [Grafana](https://grafana.com)
 - [x] **Multiple Dashboards:** Dashboards can be defined via yaml files and can be switch during runtime.
 - [x] **Time Interval:** The initial time interval can be set via the `--config.interval` command-line flag and can be changed during runtime.
 - [x] **Refresh Rate:** The initial refresh rate can be set via the `--config.refresh` command-line flag and can be changed during runtime.
-- [x] **Multiple Visualizations:** Choose between singlestat, gauge, donut, sparkline and linechart to visualize your data.
-- [ ] **Dynamic Datasources:** Currently the datasource must be provided for a graph. A better solution would be to have a datasource variable to select the datasource for a dashboard.
+- [x] **Multiple Visualizations:** Choose between singlestat, gauge, donut, sparkline, linechart and table to visualize your data.
+- [x] **Dynamic Datasources:** Use multiple datasources for one dashboard.
 - [ ] **Other Datasources:** Support for datasources besides Prometheus (e.g. InfluxDB, Elasticsearch, ...)
 
 **Note:** If you want to contribute (adding a missing features or a new one) feel free to create a PR. If you want to share a dashboard please add the `.yaml` file and a screenshot to the examples folder.
@@ -118,7 +118,7 @@ queries: [ <query> ]
 # Visualization type specific configuration.
 options:
   # Unit which should be show for the metric.
-  # This option is available for "singlestat", "sparkline" and "linechart".
+  # This option is available for "singlestat", "sparkline", "linechart" and "table".
   unit: <string>
   # Array of stats which should be shown. Possible values are "current", "first", "min", "max", "avg", "total", "diff" and "range".
   # This option is available for "singlestat", "sparkline" and "linechart".
@@ -137,6 +137,8 @@ options:
   colors: [ <string> ]
   # Mappings allow you to overwrite the returned value for a "singlestat"
   mappings <map[string]string>
+  # Columns is an array of labels which should be used as columns in a table.
+  columns: [ <column> ]
 ```
 
 #### Query
@@ -145,7 +147,17 @@ options:
 # Query which should be executed against the configured datasource.
 query: <string>
 # Label which should be used for the query. This must be unique per returned time series. Returned labels can be used via templating, e.g. "trans {{.device}}".
+# For tables the label is used to join multiple queries.
 label: <string>
+```
+
+#### Column
+
+```yaml
+# Name of the returned label which should be shown in the table.
+name: <string>
+# Header which should be used for the label.
+header: <string>
 ```
 
 ### Key Mapping
