@@ -1,0 +1,139 @@
+name: MongoDB Overview
+defaultDatasource: prometheus
+variables:
+  - name: cluster
+    query: mongodb_connections
+    label: cluster
+  - name: namespace
+    query: mongodb_connections{cluster="{{.cluster}}"}
+    label: namespace
+  - name: host
+    query: mongodb_connections{cluster="{{.cluster}}", namespace="{{.namespace}}"}
+    label: instance
+rows:
+  - height: 20
+    graphs:
+      - width: 99
+        type: linechart
+        title: Command Operations
+        queries:
+          - query: rate(mongodb_op_counters_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", type!="command"}[5m]) or irate(mongodb_op_counters_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", type!="command"}[5m])
+            label: "{{.type}}"
+          - query: rate(mongodb_op_counters_repl_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", type!~"(command|query|getmore)"}[5m]) or irate(mongodb_op_counters_repl_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", type!~"(command|query|getmore)"}[5m])
+            label: "repl_{{.type}}"
+          - query: rate(mongodb_mongod_metrics_ttl_deleted_documents_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or irate(mongodb_mongod_metrics_ttl_deleted_documents_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m])
+            label: "ttl_delete"
+        options:
+          legend: "right"
+          stats: ["min", "max", "avg"]
+
+  - height: 16
+    graphs:
+      - width: 50
+        type: linechart
+        title: Connections
+        queries:
+          - query: mongodb_connections{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", state="current"}
+            label: "Connections"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+      - width: 50
+        type: linechart
+        title: Connections
+        queries:
+          - query: mongodb_mongod_metrics_cursor_open{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"} or mongodb_mongod_cursors{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}
+            label: "{{.state}}"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+
+  - height: 16
+    graphs:
+      - width: 50
+        type: linechart
+        title: Document Operations
+        queries:
+          - query: rate(mongodb_mongod_metrics_document_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or irate(mongodb_mongod_metrics_document_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m])
+            label: "{{.state}}"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+      - width: 50
+        type: linechart
+        title: Queued Operations
+        queries:
+          - query: mongodb_mongod_global_lock_current_queue{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}
+            label: "{{.type}}"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+
+  - height: 16
+    graphs:
+      - width: 50
+        type: linechart
+        title: Query Efficiency
+        queries:
+          - query: sum(rate(mongodb_mongod_metrics_document_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", state="returned"}[5m])) / sum(rate(mongodb_mongod_metrics_query_executor_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", state="scanned_objects"}[5m])) or sum(irate(mongodb_mongod_metrics_document_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", state="returned"}[5m])) / sum(irate(mongodb_mongod_metrics_query_executor_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", state="scanned_objects"}[5m]))
+            label: "Document"
+          - query: (sum(rate(mongodb_mongod_metrics_query_executor_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", state="scanned"}[5m])) / sum(rate(mongodb_mongod_metrics_query_executor_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", state="scanned_objects"}[5m])) or sum(irate(mongodb_mongod_metrics_query_executor_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", state="scanned"}[5m])) / sum(irate(mongodb_mongod_metrics_query_executor_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}", state="scanned_objects"}[5m])))
+            label: "Index"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+      - width: 50
+        type: linechart
+        title: Scanned and Moved Objects
+        queries:
+          - query: rate(mongodb_mongod_metrics_query_executor_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or irate(mongodb_mongod_metrics_query_executor_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m])
+            label: "{{.state}}"
+          - query: rate(mongodb_mongod_metrics_record_moves_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or irate(mongodb_mongod_metrics_record_moves_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m])
+            label: "moved"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+
+  - height: 16
+    graphs:
+      - width: 50
+        type: linechart
+        title: getLastError Write Time
+        queries:
+          - query: rate(mongodb_mongod_metrics_get_last_error_wtime_total_milliseconds{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or irate(mongodb_mongod_metrics_get_last_error_wtime_total_milliseconds{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m])
+            label: "Write Wait Time"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+      - width: 50
+        type: linechart
+        title: Queued Operations
+        queries:
+          - query: rate(mongodb_mongod_metrics_get_last_error_wtime_num_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or irate(mongodb_mongod_metrics_get_last_error_wtime_num_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or rate(mongodb_mongos_metrics_get_last_error_wtime_num_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or irate(mongodb_mongos_metrics_get_last_error_wtime_num_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m])
+            label: "Total"
+          - query: rate(mongodb_mongod_metrics_get_last_error_wtimeouts_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or irate(mongodb_mongod_metrics_get_last_error_wtimeouts_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or rate(mongodb_mongos_metrics_get_last_error_wtimeouts_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or irate(mongodb_mongos_metrics_get_last_error_wtimeouts_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m])
+            label: "Timeouts"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+
+  - height: 16
+    graphs:
+      - width: 50
+        type: linechart
+        title: Assert Events
+        queries:
+          - query: mongodb_asserts_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}
+            label: "{{.type}}"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]
+      - width: 50
+        type: linechart
+        title: Page Faults
+        queries:
+          - query: rate(mongodb_extra_info_page_faults_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m]) or irate(mongodb_extra_info_page_faults_total{cluster="{{.cluster}}", namespace="{{.namespace}}", instance=~"{{.host}}"}[5m])
+            label: "Faults"
+        options:
+          legend: "bottom"
+          stats: ["min", "max", "avg"]

@@ -1,0 +1,154 @@
+name: NGINX Incress Controller - Overview
+defaultDatasource: prometheus
+variables:
+  - name: namespace
+    query: nginx_ingress_controller_config_hash
+    label: controller_namespace
+    all: true
+  - name: controller_class
+    query: nginx_ingress_controller_config_hash{namespace=~"{{.namespace}}"}
+    label: controller_class
+    all: true
+  - name: controller
+    query: nginx_ingress_controller_config_hash{namespace=~"{{.namespace}}",controller_class=~"{{.controller_class}}"}
+    label: controller_pod
+    all: true
+  - name: ingress
+    query: nginx_ingress_controller_requests{namespace=~"{{.namespace}}",controller_class=~"{{.controller_class}}",controller=~"{{.controller}}"}
+    label: ingress
+    all: true
+rows:
+  - height: 15
+    graphs:
+      - width: 25
+        type: sparkline
+        title: Controller Request Volume
+        queries:
+          - query: round(sum(irate(nginx_ingress_controller_requests{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",namespace=~"{{.namespace}}"}[2m])), 0.001)
+            label: Controller Request Volume
+        options:
+          stats: ["avg"]
+          units: ops
+      - width: 25
+        type: sparkline
+        title: Controller Connections
+        queries:
+          - query: sum(avg_over_time(nginx_ingress_controller_nginx_process_connections{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}"}[2m]))
+            label: Controller Connections
+        options:
+          stats: ["avg"]
+          units: ops
+      - width: 25
+        type: sparkline
+        title: Controller Success Rate (non-4|5xx responses)
+        queries:
+          - query: sum(rate(nginx_ingress_controller_requests{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",namespace=~"{{.namespace}}",status!~"[4-5].*"}[2m])) / sum(rate(nginx_ingress_controller_requests{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",namespace=~"{{.namespace}}"}[2m]))
+            label: Controller Success Rate (non-4|5xx responses)
+        options:
+          stats: ["avg"]
+          units: ops
+      - width: 25
+        type: sparkline
+        title: Config Reloads
+        queries:
+          - query: avg(irate(nginx_ingress_controller_success{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}"}[1m])) * 60
+            label: Config Reloads
+        options:
+          stats: ["total"]
+
+  - height: 35
+    graphs:
+      - width: 50
+        type: linechart
+        title: Ingress Request Volume
+        queries:
+          - query: round(sum(irate(nginx_ingress_controller_requests{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}",ingress=~"{{.ingress}}"}[2m])) by (ingress), 0.001)
+            label: "{{.ingress}}"
+        options:
+          legend: "bottom"
+          stats: ["avg"]
+          unit: "reqps"
+      - width: 50
+        type: linechart
+        title: Ingress Success Rate (non-4|5xx responses)
+        queries:
+          - query: (sum(rate(nginx_ingress_controller_requests{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",namespace=~"{{.namespace}}",ingress=~"{{.ingress}}",status!~"[4-5].*"}[2m])) by (ingress) / sum(rate(nginx_ingress_controller_requests{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",namespace=~"{{.namespace}}",ingress=~"{{.ingress}}"}[2m])) by (ingress)) * 100
+            label: "{{.ingress}}"
+        options:
+          legend: "bottom"
+          stats: ["avg"]
+          unit: "%"
+
+  - height: 20
+    graphs:
+      - width: 33
+        type: linechart
+        title: Ingress Request Volume
+        queries:
+          - query: sum (irate (nginx_ingress_controller_request_size_sum{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}"}[2m]))
+            label: "Received"
+          - query: '- sum (irate (nginx_ingress_controller_response_size_sum{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}"}[2m]))'
+            label: Sent
+        options:
+          unit: "bytes/sec"
+      - width: 34
+        type: linechart
+        title: Average Memory Usage
+        queries:
+          - query: avg(nginx_ingress_controller_nginx_process_resident_memory_bytes{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}"})
+            label: "nginx"
+        options:
+          unit: "bytes"
+      - width: 33
+        type: linechart
+        title: Average CPU Usage
+        queries:
+          - query: sum (rate (nginx_ingress_controller_nginx_process_cpu_seconds_total{controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}"}[2m]))
+            label: "nginx"
+
+  - height: 30
+    graphs:
+      - width: 50
+        datasource: prometheus
+        type: table
+        title: Ingress Percentile Response Times and Transfer Rates
+        queries:
+          - query: histogram_quantile(0.50, sum(rate(nginx_ingress_controller_request_duration_seconds_bucket{ingress!="",controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}",ingress=~"{{.ingress}}"}[2m])) by (le, ingress))
+            label: "{{.ingress}}"
+          - query: histogram_quantile(0.90, sum(rate(nginx_ingress_controller_request_duration_seconds_bucket{ingress!="",controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}",ingress=~"{{.ingress}}"}[2m])) by (le, ingress))
+            label: "{{.ingress}}"
+          - query: histogram_quantile(0.99, sum(rate(nginx_ingress_controller_request_duration_seconds_bucket{ingress!="",controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}",ingress=~"{{.ingress}}"}[2m])) by (le, ingress))
+            label: "{{.ingress}}"
+          - query: sum(irate(nginx_ingress_controller_request_size_sum{ingress!="",controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}",ingress=~"{{.ingress}}"}[2m])) by (ingress)
+            label: "{{.ingress}}"
+          - query: sum(irate(nginx_ingress_controller_response_size_sum{ingress!="",controller_pod=~"{{.controller}}",controller_class=~"{{.controller_class}}",controller_namespace=~"{{.namespace}}",ingress=~"{{.ingress}}"}[2m])) by (ingress)
+            label: "{{.ingress}}"
+        options:
+          decimals: 2
+          columns:
+            - name: ingress
+              header: Ingress
+            - name: value_0
+              header: P50 Latency
+            - name: value_1
+              header: P90 Latency
+            - name: value_2
+              header: P99 Latency
+            - name: value_3
+              header: IN
+            - name: value_4
+              header: OUT
+      - width: 50
+        datasource: prometheus
+        type: table
+        title: Ingress Certificate Expiry
+        queries:
+          - query: (avg(nginx_ingress_controller_ssl_expire_time_seconds{kubernetes_pod_name=~"{{.controller}}",namespace=~"{{.namespace}}",ingress=~"{{.ingress}}"}) by (host) - time()) / 60 / 60 / 24
+            label: "{{.host}}"
+        options:
+          decimals: 2
+          columns:
+            - name: host
+              header: Host
+            - name: value_0
+              header: TTL
