@@ -43,6 +43,12 @@ By default dash will look at `~/.dash` for the datasources and dashboards. To ch
 
 To set the initial interval and refresh rate you can use the `--config.interval` and `--config.refresh` flag. To enable the debug logs you can pass the `--debug` flag to dash.
 
+dash also supports an **explore** mode, where you can query your datasources without the need for a dashboard. The explore mode can be called via the `explore` command. You can also pass an optional query to the explore mode:
+
+```sh
+dashboard explore --query 'node_load1{cluster="main"}'
+```
+
 ### Datasources
 
 The configuration file for a datasource looks as follows:
@@ -172,6 +178,7 @@ Use the following keys to navigate within dash:
 | `<0-9>` | Provide the index for a value in the modal. |
 | `F1` | Open the dashboards modal. |
 | `F2` | Open the datasource modal. |
-| `F3` + `<1-9>` | Open the modal for a variable. Press `v` plus a number from `1` to `9` to select the variable. |
+| `F3` | Open the query modal in the explore mode. |
+| `F3` + `<1-9>` | Open the modal for a variable. Press `F3` plus a number from `1` to `9` to select the variable. |
 | `F4` | Open the interval modal. |
 | `F5` | Open the refresh rate modal. |
