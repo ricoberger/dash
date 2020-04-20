@@ -170,7 +170,8 @@ Use the following keys to navigate within dash:
 | `<Esc>` | Close modal with out changing the value. |
 | `<Enter>` | Select the current value in the modal and close the modal. |
 | `<0-9>` | Provide the index for a value in the modal. |
-| `d` | Open the dashboards modal. |
-| `v` + `<1-9>` | Open the modal for a variable. Press `v` plus a number from `1` to `9` to select the variable. |
-| `i` | Open the interval modal. |
-| `r` | Open the refresh rate modal. |
+| `F1` | Open the dashboards modal. |
+| `F2` | Open the datasource modal. |
+| `F3` + `<1-9>` | Open the modal for a variable. Press `v` plus a number from `1` to `9` to select the variable. |
+| `F4` | Open the interval modal. |
+| `F5` | Open the refresh rate modal. |

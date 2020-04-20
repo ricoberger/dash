@@ -111,26 +111,26 @@ func Run(datasources map[string]datasource.Client, dashboards []dashboard.Dashbo
 					c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(gridOpts...), container.SplitFixed(1)))
 				}
 			}
-		case 'd':
+		case keyboard.KeyF1:
 			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeDashboard, VariableIndex: 0})
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
-		case 's':
+		case keyboard.KeyF2:
 			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeDatasource, VariableIndex: 0})
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			if modalActive {
 				modal.SelectIndex(string(k.Key))
-			} else if previousKey == 'v' && k.Key != '0' {
+			} else if previousKey == keyboard.KeyF3 && k.Key != '0' {
 				variableIndex, err := strconv.Atoi(string(k.Key))
 				if err == nil && variableIndex <= len(storage.Dashboard().Variables) {
 					modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeVariable, VariableIndex: variableIndex - 1})
 					c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
 				}
 			}
-		case 'i':
+		case keyboard.KeyF4:
 			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeInterval, VariableIndex: 0})
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
-		case 'r':
+		case keyboard.KeyF5:
 			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeRefresh, VariableIndex: 0})
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
 		case keyboard.KeyEsc:
