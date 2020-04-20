@@ -40,6 +40,9 @@ func (s *Statusbar) Update(termWidth int) {
 	dashboard := fmt.Sprintf(" [F1] Dashboard: %s", s.storage.Dashboard().Name)
 	datasource := fmt.Sprintf(" [F2] Datasource: %s", s.storage.ActiveDatasource)
 	variables := fmt.Sprintf(" [F3] Variables: %s", strings.Join(prefixedValues, ", "))
+	if s.storage.Explore.Enabled {
+		variables = fmt.Sprintf(" [F3] Query: %s", s.storage.Dashboard().Rows[0].Graphs[0].Queries[0].Query)
+	}
 	interval := fmt.Sprintf(" [F4] Interval: %s", s.storage.Interval.Interval)
 	refresh := fmt.Sprintf(" [F5] Refresh: %s ", s.storage.Refresh)
 	spaces := strings.Repeat(" ", termWidth-len(dashboard)-len(datasource)-len(variables)-len(interval)-len(refresh))

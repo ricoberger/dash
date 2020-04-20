@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"strings"
 	"time"
 
 	"github.com/ricoberger/dash/pkg/dashboard"
@@ -11,6 +12,11 @@ import (
 const (
 	initialActiveDashboard = 0
 )
+
+type Explore struct {
+	Enabled     bool
+	Suggestions []string
+}
 
 type Interval struct {
 	Interval string
@@ -26,6 +32,15 @@ type Storage struct {
 	Interval         Interval
 	Refresh          string
 	VariableValues   map[string]string
+	Explore          Explore
+}
+
+func (s *Storage) loadVariablesOrSuggestions() error {
+	if s.Explore.Enabled {
+		return s.loadSuggestions()
+	}
+
+	return s.loadVariables()
 }
 
 func (s *Storage) loadVariables() error {
@@ -52,6 +67,26 @@ func (s *Storage) loadVariables() error {
 	return nil
 }
 
+func (s *Storage) loadSuggestions() error {
+	suggestions, err := s.Datasource().GetSuggestions()
+	if err != nil {
+		return err
+	}
+
+	s.Explore.Suggestions = suggestions
+	fLog.Debugf("Loaded %d suggestions", len(suggestions))
+	return nil
+}
+
+func filterSuggestions(suggestions []string, filter func(string) bool) (result []string) {
+	for _, s := range suggestions {
+		if filter(s) {
+			result = append(result, s)
+		}
+	}
+	return
+}
+
 func (s *Storage) Datasource() datasource.Client {
 	return s.Datasources[s.ActiveDatasource]
 }
@@ -64,7 +99,7 @@ func (s *Storage) ChangeDatasource(active string) error {
 	fLog.Debugf("change datasource to %s", active)
 	s.ActiveDatasource = active
 	s.VariableValues = make(map[string]string)
-	return s.loadVariables()
+	return s.loadVariablesOrSuggestions()
 }
 
 func (s *Storage) ChangeDashboard(active int) error {
@@ -76,7 +111,7 @@ func (s *Storage) ChangeDashboard(active int) error {
 	}
 
 	s.VariableValues = make(map[string]string)
-	return s.loadVariables()
+	return s.loadVariablesOrSuggestions()
 }
 
 func (s *Storage) GetVariableValues() []string {
@@ -94,7 +129,7 @@ func (s *Storage) GetVariableValues() []string {
 func (s *Storage) ChangeVariable(name, value string) error {
 	fLog.Debugf("change variable %s to %s", name, value)
 	s.VariableValues[name] = value
-	return s.loadVariables()
+	return s.loadVariablesOrSuggestions()
 }
 
 func (s *Storage) ChangeInterval(interval string) error {
@@ -103,7 +138,7 @@ func (s *Storage) ChangeInterval(interval string) error {
 	s.Interval.Interval = interval
 	s.Interval.Start = start
 	s.Interval.End = end
-	return s.loadVariables()
+	return s.loadVariablesOrSuggestions()
 }
 
 func (s *Storage) GetRefresh() time.Duration {
@@ -144,7 +179,16 @@ func (s *Storage) RefreshInterval() {
 	s.Interval.End = end
 }
 
-func NewStorage(datasources map[string]datasource.Client, dashboards []dashboard.Dashboard, initialInterval, initialRefresh string) (*Storage, error) {
+func (s *Storage) GetSuggestions(filter string) []string {
+	lastSpace := strings.LastIndex(filter, " ")
+	if lastSpace == -1 {
+		lastSpace = 0
+	}
+	myFilter := func(s string) bool { return strings.Contains(s, strings.TrimSpace(filter[lastSpace:])) }
+	return filterSuggestions(s.Explore.Suggestions, myFilter)
+}
+
+func NewStorage(explore bool, datasources map[string]datasource.Client, dashboards []dashboard.Dashboard, initialInterval, initialRefresh string) (*Storage, error) {
 	start, end := GetStartAndEndTime(initialInterval)
 
 	var initialActiveDatasource string
@@ -169,9 +213,15 @@ func NewStorage(datasources map[string]datasource.Client, dashboards []dashboard
 		},
 		Refresh:        initialRefresh,
 		VariableValues: make(map[string]string),
+		Explore: Explore{
+			Enabled: explore,
+		},
 	}
 
-	s.loadVariables()
+	err := s.loadVariablesOrSuggestions()
+	if err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }

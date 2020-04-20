@@ -193,6 +193,23 @@ func (p *Prometheus) GetTableData(queries, labels []string) (*TableData, error) 
 	return &tableData, nil
 }
 
+func (p *Prometheus) GetSuggestions() ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	result, _, err := p.v1api.LabelValues(ctx, "__name__")
+	if err != nil {
+		return nil, err
+	}
+
+	var values []string
+	for _, val := range result {
+		values = append(values, string(val))
+	}
+
+	return values, nil
+}
+
 func getTimeRange(options Options, start, end time.Time) v1.Range {
 	var step = 10 * time.Second
 	if options.MaxPoints != 0 {
