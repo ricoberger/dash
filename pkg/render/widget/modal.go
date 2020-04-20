@@ -18,6 +18,7 @@ const (
 	ModalTypeVariable   ModalType = "Variable"
 	ModalTypeInterval   ModalType = "Interval"
 	ModalTypeRefresh    ModalType = "Refresh"
+	ModalTypeExplore    ModalType = "Explore"
 )
 
 var intervals = []string{"5m", "15m", "30m", "1h", "3h", "6h", "12h", "24h", "2d", "7d", "30d"}
@@ -89,20 +90,29 @@ func (m *Modal) show(updateRows bool) bool {
 			for index, refresh := range refreshs {
 				m.rows = append(m.rows, fmt.Sprintf("%3d: %s", index, refresh))
 			}
+		} else if m.options.Type == ModalTypeExplore {
+			m.rows = m.storage.GetSuggestions(m.index)
 		} else {
 			return false
 		}
 	}
 
-	if m.index == "" {
-		err := m.Write(fmt.Sprintf("Selected index: \n\n%s", strings.Join(m.rows, "\n")))
+	if m.options.Type == ModalTypeExplore {
+		err := m.Write(fmt.Sprintf("Query: %s\n\n%s", m.index, strings.Join(m.rows, "\n")))
 		if err != nil {
 			return false
 		}
 	} else {
-		err := m.Write(fmt.Sprintf("Selected index: %s \n\n%s", m.index, strings.Join(m.rows, "\n")))
-		if err != nil {
-			return false
+		if m.index == "" {
+			err := m.Write(fmt.Sprintf("Selected index: \n\n%s", strings.Join(m.rows, "\n")))
+			if err != nil {
+				return false
+			}
+		} else {
+			err := m.Write(fmt.Sprintf("Selected index: %s \n\n%s", m.index, strings.Join(m.rows, "\n")))
+			if err != nil {
+				return false
+			}
 		}
 	}
 
@@ -118,39 +128,60 @@ func (m *Modal) Show(options *ModalOptions) bool {
 
 func (m *Modal) SelectIndex(index string) bool {
 	m.index = m.index + index
+
+	if m.options.Type == ModalTypeExplore {
+		return m.show(true)
+	}
+
+	return m.show(false)
+}
+
+func (m *Modal) RemoveIndex() bool {
+	if len(m.index) > 0 {
+		m.index = m.index[:len(m.index)-1]
+	}
+
+	if m.options.Type == ModalTypeExplore {
+		return m.show(true)
+	}
+
 	return m.show(false)
 }
 
 func (m *Modal) Select() (ModalType, error) {
-	index, err := strconv.Atoi(m.index)
-	if err != nil {
-		return m.options.Type, err
-	}
+	if m.options.Type == ModalTypeExplore {
+		m.storage.Dashboard().Rows[0].Graphs[0].Queries[0].Query = m.index
+	} else {
+		index, err := strconv.Atoi(m.index)
+		if err != nil {
+			return m.options.Type, err
+		}
 
-	if m.options.Type == ModalTypeDatasource {
-		split := strings.Index(m.rows[index], ":")
-		err := m.storage.ChangeDatasource(m.rows[index][split+2:])
-		if err != nil {
-			return m.options.Type, err
+		if m.options.Type == ModalTypeDatasource {
+			split := strings.Index(m.rows[index], ":")
+			err := m.storage.ChangeDatasource(m.rows[index][split+2:])
+			if err != nil {
+				return m.options.Type, err
+			}
+		} else if m.options.Type == ModalTypeDashboard {
+			err := m.storage.ChangeDashboard(index)
+			if err != nil {
+				return m.options.Type, err
+			}
+		} else if m.options.Type == ModalTypeVariable {
+			split := strings.Index(m.rows[index], ":")
+			err := m.storage.ChangeVariable(m.storage.Dashboard().Variables[m.options.VariableIndex].Name, m.rows[index][split+2:])
+			if err != nil {
+				return m.options.Type, err
+			}
+		} else if m.options.Type == ModalTypeInterval {
+			err := m.storage.ChangeInterval(intervals[index])
+			if err != nil {
+				return m.options.Type, err
+			}
+		} else if m.options.Type == ModalTypeRefresh {
+			m.storage.ChangeRefresh(refreshs[index])
 		}
-	} else if m.options.Type == ModalTypeDashboard {
-		err := m.storage.ChangeDashboard(index)
-		if err != nil {
-			return m.options.Type, err
-		}
-	} else if m.options.Type == ModalTypeVariable {
-		split := strings.Index(m.rows[index], ":")
-		err := m.storage.ChangeVariable(m.storage.Dashboard().Variables[m.options.VariableIndex].Name, m.rows[index][split+2:])
-		if err != nil {
-			return m.options.Type, err
-		}
-	} else if m.options.Type == ModalTypeInterval {
-		err := m.storage.ChangeInterval(intervals[index])
-		if err != nil {
-			return m.options.Type, err
-		}
-	} else if m.options.Type == ModalTypeRefresh {
-		m.storage.ChangeRefresh(refreshs[index])
 	}
 
 	return m.options.Type, nil

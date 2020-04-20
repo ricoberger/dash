@@ -77,7 +77,7 @@ func GridLayout(storage *utils.Storage) []container.Option {
 							component = renderError(graph, fmt.Sprintf("Could not render sparkline %s: %s", graph.Title, err.Error()))
 						}
 					case "linechart":
-						component, err = linechartPanel(graph, data)
+						component, err = linechartPanel(graph, data, storage.Explore.Enabled)
 						if err != nil {
 							component = renderError(graph, fmt.Sprintf("Could not load render linechart %s: %s", graph.Title, err.Error()))
 						}
@@ -269,13 +269,18 @@ func sparklinePanel(graph dashboard.Graph, data *datasource.Data) (grid.Element,
 	return grid.Widget(s, container.Border(linestyle.Light), container.BorderTitle(graph.Title), container.AlignHorizontal(align.HorizontalCenter), container.AlignVertical(align.VerticalMiddle)), nil
 }
 
-func linechartPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element, error) {
+func linechartPanel(graph dashboard.Graph, data *datasource.Data, explore bool) (grid.Element, error) {
 	lc, err := linechart.New()
 	if err != nil {
 		return nil, err
 	}
 
-	legend, err := text.New(text.WrapAtRunes())
+	legendOptions := text.WrapAtRunes()
+	if explore {
+		legendOptions = text.WrapAtWords()
+	}
+
+	legend, err := text.New(legendOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -295,9 +300,17 @@ func linechartPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element,
 
 		color := randomColor(index)
 		if graph.Options.Legend == "bottom" {
-			err = legend.Write(fmt.Sprintf("%s: %s   ", series.Label, statsLegend), text.WriteCellOpts(cell.FgColor(color)))
-			if err != nil {
-				return nil, err
+			if explore {
+				err = legend.Write(fmt.Sprintf("%s: %s\n", series.Label, statsLegend), text.WriteCellOpts(cell.FgColor(color)))
+				if err != nil {
+					return nil, err
+				}
+
+			} else {
+				err = legend.Write(fmt.Sprintf("%s: %s   ", series.Label, statsLegend), text.WriteCellOpts(cell.FgColor(color)))
+				if err != nil {
+					return nil, err
+				}
 			}
 		} else if graph.Options.Legend == "right" {
 			err = legend.Write(fmt.Sprintf("%s: %s\n", series.Label, statsLegend), text.WriteCellOpts(cell.FgColor(color)))
@@ -321,13 +334,22 @@ func linechartPanel(graph dashboard.Graph, data *datasource.Data) (grid.Element,
 
 	// Render linechart and legend
 	// See: https://github.com/slok/grafterm/blob/master/internal/view/render/termdash/graph.go
+	//
+	// If the linechart is used for the explore mode we increase the space for rendering the labels.
+	graphVerticalPerc := 90
+	legendVerticalPerc := 4
+	if explore {
+		graphVerticalPerc = 50
+		legendVerticalPerc = 44
+	}
+
 	graphElement := grid.Widget(lc)
 
 	var elements []grid.Element
 	switch graph.Options.Legend {
 	case "bottom":
-		legendElement := grid.RowHeightPercWithOpts(99, []container.Option{container.PaddingTopPercent(50)}, grid.Widget(legend))
-		elements = []grid.Element{grid.RowHeightPerc(90, graphElement), grid.RowHeightPerc(4, legendElement)}
+		legendElement := grid.RowHeightPercWithOpts(99, []container.Option{container.PaddingTopPercent(10)}, grid.Widget(legend))
+		elements = []grid.Element{grid.RowHeightPerc(graphVerticalPerc, graphElement), grid.RowHeightPerc(legendVerticalPerc, legendElement)}
 	case "right":
 		legendElement := grid.ColWidthPercWithOpts(99, []container.Option{container.PaddingLeftPercent(10)}, grid.Widget(legend))
 		elements = []grid.Element{grid.ColWidthPerc(80, graphElement), grid.ColWidthPerc(19, legendElement)}

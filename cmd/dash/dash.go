@@ -19,6 +19,7 @@ var (
 	configInterval string
 	configRefresh  string
 	debug          bool
+	query          string
 )
 
 var rootCmd = &cobra.Command{
@@ -46,7 +47,39 @@ var rootCmd = &cobra.Command{
 			log.Fatalf("Could not load dashboards: %v", err)
 		}
 
-		err = render.Run(datasources, dashboards, configInterval, configRefresh)
+		err = render.Run(false, datasources, dashboards, configInterval, configRefresh)
+		if err != nil {
+			log.Fatalf("Unexpected error: %v", err)
+		}
+	},
+}
+
+var exploreCmd = &cobra.Command{
+	Use:   "explore",
+	Short: "Explore the data in your datasource.",
+	Long:  "Explore the data in your datasource.",
+	Run: func(cmd *cobra.Command, args []string) {
+		if configDir == "~/.dash" {
+			configDir = os.Getenv("HOME") + "/.dash"
+		}
+
+		err := fLog.Init(configDir, debug)
+		if err != nil {
+			log.Fatalf("Could not open log file: %v", err)
+		}
+		defer fLog.Close()
+
+		datasources, err := datasource.New(configDir)
+		if err != nil {
+			log.Fatalf("Could not load datasources: %v", err)
+		}
+
+		dashboards, err := dashboard.Explore(query)
+		if err != nil {
+			log.Fatalf("Could not create explore dashboard: %v", err)
+		}
+
+		err = render.Run(true, datasources, dashboards, configInterval, configRefresh)
 		if err != nil {
 			log.Fatalf("Unexpected error: %v", err)
 		}
@@ -74,6 +107,9 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&configRefresh, "config.refresh", "5m", "Time between refreshs of the dashboard.")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Log debug information.")
 
+	exploreCmd.PersistentFlags().StringVar(&query, "query", "", "Query which should be executed.")
+
+	rootCmd.AddCommand(exploreCmd)
 	rootCmd.AddCommand(versionCmd)
 }
 

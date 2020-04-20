@@ -50,6 +50,7 @@ type Client interface {
 	GetVariableValues(query, label string, start, end time.Time) ([]string, error)
 	GetData(queries, labels []string, start, end time.Time) (*Data, error)
 	GetTableData(queries, labels []string) (*TableData, error)
+	GetSuggestions() ([]string, error)
 }
 
 func New(dir string) (map[string]Client, error) {

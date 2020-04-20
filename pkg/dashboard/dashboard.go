@@ -44,3 +44,31 @@ func New(dir string) ([]Dashboard, error) {
 
 	return dashboards, nil
 }
+
+func Explore(query string) ([]Dashboard, error) {
+	dashboard := Dashboard{
+		Name: "Explore",
+		Rows: []Row{
+			{
+				Height: 99,
+				Graphs: []Graph{
+					{
+						Width: 99,
+						Type:  "linechart",
+						Title: "Explore",
+						Queries: []Query{
+							{
+								Query: query,
+							},
+						},
+						Options: Options{
+							Legend: "bottom",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	return []Dashboard{dashboard}, nil
+}

@@ -23,7 +23,7 @@ var (
 	ErrNoDashboards = errors.New("no dashboards were provided")
 )
 
-func Run(datasources map[string]datasource.Client, dashboards []dashboard.Dashboard, initialInterval, initialRefresh string) error {
+func Run(explore bool, datasources map[string]datasource.Client, dashboards []dashboard.Dashboard, initialInterval, initialRefresh string) error {
 	// Check if there was at least one dashboard provided. This is required for the storage implementation, because we
 	// choose the first dashboard as the initial one.
 	// When the check succeeded we create the storage, which holds the current state of dash.
@@ -31,7 +31,7 @@ func Run(datasources map[string]datasource.Client, dashboards []dashboard.Dashbo
 		return ErrNoDashboards
 	}
 
-	storage, err := utils.NewStorage(datasources, dashboards, initialInterval, initialRefresh)
+	storage, err := utils.NewStorage(explore, datasources, dashboards, initialInterval, initialRefresh)
 	if err != nil {
 		return err
 	}
@@ -103,6 +103,8 @@ func Run(datasources map[string]datasource.Client, dashboards []dashboard.Dashbo
 						storage.RefreshInterval()
 					} else if modalType == widget.ModalTypeRefresh {
 						ticker = time.NewTicker(storage.GetRefresh())
+					} else if modalType == widget.ModalTypeExplore {
+						storage.RefreshInterval()
 					}
 
 					modalActive = false
@@ -117,14 +119,25 @@ func Run(datasources map[string]datasource.Client, dashboards []dashboard.Dashbo
 		case keyboard.KeyF2:
 			modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeDatasource, VariableIndex: 0})
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
+		case keyboard.KeyF3:
+			if explore {
+				modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeExplore, VariableIndex: 0})
+				c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
+			}
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-			if modalActive {
-				modal.SelectIndex(string(k.Key))
-			} else if previousKey == keyboard.KeyF3 && k.Key != '0' {
-				variableIndex, err := strconv.Atoi(string(k.Key))
-				if err == nil && variableIndex <= len(storage.Dashboard().Variables) {
-					modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeVariable, VariableIndex: variableIndex - 1})
-					c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
+			if explore {
+				if modalActive {
+					modal.SelectIndex(string(k.Key))
+				}
+			} else {
+				if modalActive {
+					modal.SelectIndex(string(k.Key))
+				} else if previousKey == keyboard.KeyF3 && k.Key != '0' {
+					variableIndex, err := strconv.Atoi(string(k.Key))
+					if err == nil && variableIndex <= len(storage.Dashboard().Variables) {
+						modalActive = modal.Show(&widget.ModalOptions{Type: widget.ModalTypeVariable, VariableIndex: variableIndex - 1})
+						c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(container.PlaceWidget(modal)), container.SplitFixed(1)))
+					}
 				}
 			}
 		case keyboard.KeyF4:
@@ -138,6 +151,16 @@ func Run(datasources map[string]datasource.Client, dashboards []dashboard.Dashbo
 			storage.RefreshInterval()
 			gridOpts = widget.GridLayout(storage)
 			c.Update("layout", container.SplitHorizontal(container.Top(container.PlaceWidget(statusbar)), container.Bottom(gridOpts...), container.SplitFixed(1)))
+		case keyboard.KeyBackspace, keyboard.KeyBackspace2, keyboard.KeyDelete:
+			if modalActive {
+				modal.RemoveIndex()
+			}
+		default:
+			if explore {
+				if modalActive {
+					modal.SelectIndex(string(k.Key))
+				}
+			}
 		}
 
 		previousKey = k.Key
