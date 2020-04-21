@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.0](https://github.com/ricoberger/dash/tree/1.0.0) (2020-04-21)
+
+[Full Changelog](https://github.com/ricoberger/dash/compare/0.4.0...1.0.0)
+
+**Breaking changes:**
+
+- Change key mapping [\#10](https://github.com/ricoberger/dash/pull/10) ([ricoberger](https://github.com/ricoberger))
+
+**Implemented enhancements:**
+
+- Add explore mode [\#11](https://github.com/ricoberger/dash/pull/11) ([ricoberger](https://github.com/ricoberger))
+
 ## [0.4.0](https://github.com/ricoberger/dash/tree/0.4.0) (2020-04-18)
 
 [Full Changelog](https://github.com/ricoberger/dash/compare/0.3.0...0.4.0)
