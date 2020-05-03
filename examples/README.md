@@ -6,6 +6,10 @@
 
 ![blackbox_exporter](./assets/blackbox_exporter.png)
 
+### Flux
+
+![Flux](./assets/flux.png)
+
 ### MongoDB Overview
 
 ![MongoDB Overview](./assets/mongodb-overview.png)

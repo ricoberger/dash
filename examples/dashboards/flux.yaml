@@ -1,0 +1,108 @@
+name: Flux
+defaultDatasource: prometheus
+variables:
+  - name: cluster
+    query: flux_daemon_job_duration_seconds_bucket
+    label: cluster
+rows:
+  - height: 20
+    graphs:
+      - width: 99
+        type: linechart
+        title: Synced Manifests
+        queries:
+          - query: sum(flux_daemon_sync_manifests{cluster="{{.cluster}}"}) by (success)
+            label: "success: {{.success}}"
+        options:
+          legend: "right"
+
+  - height: 20
+    graphs:
+      - width: 50
+        type: linechart
+        title: Duration of cache requests, in seconds.
+        queries:
+          - query: sum(rate(flux_cache_request_duration_seconds_sum{cluster="{{.cluster}}"}[5m])) by (method)
+            label: "{{.method}}"
+        options:
+          unit: "seconds"
+          stats: ["min", "max", "avg"]
+          legend: "bottom"
+      - width: 50
+        type: linechart
+        title: Duration of remote image metadata requests
+        queries:
+          - query: sum(rate(flux_client_fetch_duration_seconds_sum{cluster="{{.cluster}}"}[5m])) by (kind)
+            label: "{{.kind}}"
+        options:
+          unit: "seconds"
+          stats: ["min", "max", "avg"]
+          legend: "bottom"
+
+  - height: 20
+    graphs:
+      - width: 50
+        type: linechart
+        title: Duration of job execution, in seconds
+        queries:
+          - query: flux_daemon_job_duration_seconds_sum{cluster="{{.cluster}}"}
+            label: "success: {{.success}}"
+        options:
+          unit: "seconds"
+          stats: ["min", "max", "avg"]
+          legend: "bottom"
+      - width: 50
+        type: linechart
+        title: Duration of time spent in the job queue before execution
+        queries:
+          - query: sum(flux_daemon_queue_duration_seconds_sum{cluster="{{.cluster}}"} or vector(0))
+            label: "Total"
+        options:
+          unit: "seconds"
+          stats: ["min", "max", "avg"]
+          legend: "bottom"
+
+  - height: 20
+    graphs:
+      - width: 50
+        type: linechart
+        title: Count of jobs waiting in the queue to be run
+        queries:
+          - query: sum(flux_daemon_queue_length_count{cluster="{{.cluster}}"} or vector(0))
+            label: "Jobs"
+        options:
+          stats: ["min", "max", "avg"]
+          legend: "bottom"
+      - width: 50
+        type: linechart
+        title: Duration of git-to-cluster synchronisation
+        queries:
+          - query: sum(rate(flux_daemon_sync_duration_seconds_sum{cluster="{{.cluster}}"}[5m])) by (success)
+            label: "success: {{.success}}"
+        options:
+          unit: "seconds"
+          stats: ["min", "max", "avg"]
+          legend: "bottom"
+
+  - height: 20
+    graphs:
+      - width: 50
+        type: linechart
+        title: Duration of image metadata requests (from cache)
+        queries:
+          - query: sum(rate(flux_registry_fetch_duration_seconds_sum{cluster="{{.cluster}}"}[5m]))
+            label: "Registry fetch"
+        options:
+          unit: "seconds"
+          stats: ["min", "max", "avg"]
+          legend: "bottom"
+      - width: 50
+        type: linechart
+        title: Duration in seconds of the current connection to fluxsvc
+        queries:
+          - query: sum(rate(flux_fluxd_connection_duration_seconds{cluster="{{.cluster}}"}[5m]))
+            label: "Connection duration"
+        options:
+          unit: "seconds"
+          stats: ["min", "max", "avg"]
+          legend: "bottom"
