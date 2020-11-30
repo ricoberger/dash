@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.1](https://github.com/ricoberger/dash/tree/1.0.1) (2020-11-30)
+
+[Full Changelog](https://github.com/ricoberger/dash/compare/1.0.0...1.0.1)
+
+**Implemented enhancements:**
+
+- Add config option to skip TLS verification [\#13](https://github.com/ricoberger/dash/pull/13) ([ricoberger](https://github.com/ricoberger))
+
+**Closed issues:**
+
+- Allow TLS connection with self-sigend certificates [\#12](https://github.com/ricoberger/dash/issues/12)
+
 ## [1.0.0](https://github.com/ricoberger/dash/tree/1.0.0) (2020-04-21)
 
 [Full Changelog](https://github.com/ricoberger/dash/compare/0.4.0...1.0.0)
