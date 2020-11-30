@@ -2,7 +2,9 @@ package datasource
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 	"time"
@@ -10,7 +12,7 @@ import (
 	fLog "github.com/ricoberger/dash/pkg/log"
 
 	"github.com/prometheus/client_golang/api"
-	"github.com/prometheus/client_golang/api/prometheus/v1"
+	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 )
 
@@ -43,7 +45,17 @@ func (tat tokenAuthTransporter) RoundTrip(req *http.Request) (*http.Response, er
 }
 
 func NewPrometheusClient(datasource Datasource) (*Prometheus, error) {
-	roundTripper := api.DefaultRoundTripper
+	var roundTripper http.RoundTripper = &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout: 10 * time.Second,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: datasource.Auth.InsecureSkipTLSVerify,
+		},
+	}
 
 	if datasource.Auth.Username != "" && datasource.Auth.Password != "" {
 		roundTripper = basicAuthTransport{

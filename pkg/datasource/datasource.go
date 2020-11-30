@@ -16,9 +16,10 @@ var (
 )
 
 type Auth struct {
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	Token    string `yaml:"token"`
+	Username              string `yaml:"username"`
+	Password              string `yaml:"password"`
+	Token                 string `yaml:"token"`
+	InsecureSkipTLSVerify bool   `yaml:"insecureSkipTLSVerify"`
 }
 
 type Options struct {
