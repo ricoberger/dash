@@ -3,6 +3,7 @@ package log
 import (
 	"log"
 	"os"
+	"path/filepath"
 )
 
 var (
@@ -15,7 +16,9 @@ func Init(dir string, debugEnabled bool) error {
 
 	var err error
 
-	f, err = os.OpenFile(dir+"/dash.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	dashLog := filepath.Join(dir, "dash.log")
+
+	f, err = os.OpenFile(dashLog, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return err
 	}

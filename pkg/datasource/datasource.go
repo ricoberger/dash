@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io/ioutil"
+	"path/filepath"
 	"text/template"
 	"time"
 
@@ -55,7 +56,9 @@ type Client interface {
 }
 
 func New(dir string) (map[string]Client, error) {
-	files, err := ioutil.ReadDir(dir + "/datasources")
+	datasourceDir := filepath.Join(dir, "datasources")
+	
+	files, err := ioutil.ReadDir(datasourceDir)
 	if err != nil {
 		return nil, err
 	}
@@ -65,8 +68,9 @@ func New(dir string) (map[string]Client, error) {
 
 	for _, file := range files {
 		var datasource Datasource
+		datasourceFile := filepath.Join(datasourceDir, file.Name())
 
-		data, err := ioutil.ReadFile(dir + "/datasources/" + file.Name())
+		data, err := ioutil.ReadFile(datasourceFile)
 		if err != nil {
 			return nil, err
 		}
