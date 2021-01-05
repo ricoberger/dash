@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/ricoberger/dash/pkg/dashboard"
 	"github.com/ricoberger/dash/pkg/datasource"
@@ -27,10 +28,6 @@ var rootCmd = &cobra.Command{
 	Short: "dash - terminal dashboard.",
 	Long:  "dash - terminal dashboard.",
 	Run: func(cmd *cobra.Command, args []string) {
-		if configDir == "~/.dash" {
-			configDir = os.Getenv("HOME") + "/.dash"
-		}
-
 		err := fLog.Init(configDir, debug)
 		if err != nil {
 			log.Fatalf("Could not open log file: %v", err)
@@ -59,10 +56,6 @@ var exploreCmd = &cobra.Command{
 	Short: "Explore the data in your datasource.",
 	Long:  "Explore the data in your datasource.",
 	Run: func(cmd *cobra.Command, args []string) {
-		if configDir == "~/.dash" {
-			configDir = os.Getenv("HOME") + "/.dash"
-		}
-
 		err := fLog.Init(configDir, debug)
 		if err != nil {
 			log.Fatalf("Could not open log file: %v", err)
@@ -102,7 +95,14 @@ var versionCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.PersistentFlags().StringVar(&configDir, "config.dir", "~/.dash", "Location of the datasources and dashboards folder.")
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Fatalf("Failed to get OS home directory: %v", err)
+	}
+
+	dashPath := filepath.Join(homeDir, ".dash")
+
+	rootCmd.PersistentFlags().StringVar(&configDir, "config.dir", dashPath, "Location of the datasources and dashboards folder.")
 	rootCmd.PersistentFlags().StringVar(&configInterval, "config.interval", "1h", "Interval to retrieve data for.")
 	rootCmd.PersistentFlags().StringVar(&configRefresh, "config.refresh", "5m", "Time between refreshs of the dashboard.")
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Log debug information.")

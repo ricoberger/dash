@@ -2,6 +2,7 @@ package dashboard
 
 import (
 	"io/ioutil"
+	"path/filepath"
 
 	"gopkg.in/yaml.v2"
 )
@@ -19,7 +20,9 @@ type Dashboard struct {
 }
 
 func New(dir string) ([]Dashboard, error) {
-	files, err := ioutil.ReadDir(dir + "/dashboards")
+	dashboardDir := filepath.Join(dir, "dashboards")
+	
+	files, err := ioutil.ReadDir(dashboardDir)
 	if err != nil {
 		return nil, err
 	}
@@ -29,7 +32,9 @@ func New(dir string) ([]Dashboard, error) {
 	for _, file := range files {
 		var dashboard Dashboard
 
-		data, err := ioutil.ReadFile(dir + "/dashboards/" + file.Name())
+		dashboardFile := filepath.Join(dashboardDir, file.Name())
+
+		data, err := ioutil.ReadFile(dashboardFile)
 		if err != nil {
 			return nil, err
 		}
