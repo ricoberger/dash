@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/ricoberger/dash/tree/1.0.2) (2021-01-05)
+
+[Full Changelog](https://github.com/ricoberger/dash/compare/1.0.1...1.0.2)
+
+**Fixed bugs:**
+
+- fix "The system cannot find the path specified." for non UNIX system [\#14](https://github.com/ricoberger/dash/pull/14) ([izzatzr](https://github.com/izzatzr))
+
 ## [1.0.1](https://github.com/ricoberger/dash/tree/1.0.1) (2020-11-30)
 
 [Full Changelog](https://github.com/ricoberger/dash/compare/1.0.0...1.0.1)
